@@ -2006,7 +2006,7 @@ dependencies = [
 
 [[package]]
 name = "motion-anchor"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "multiinput",
  "serde",

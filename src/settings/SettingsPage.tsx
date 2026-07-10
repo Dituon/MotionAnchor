@@ -17,25 +17,28 @@ import {
 } from "../tauri/pluginCommands";
 import type { RawMouseDebugPayload } from "../tauri/types";
 import {
+  defaultOverlayAppearance,
   getOverlayAppearance,
+  setOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
 import { ShortcutSettings } from "../shortcuts/ShortcutSettings";
 import { AboutPanel } from "./AboutPanel";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { PluginSettingEditor } from "./PluginSettingEditor";
+import { StartPage } from "./StartPage";
 import { WindowTitleBar } from "./WindowTitleBar";
 
-type SettingsSection = "plugins" | "shortcuts" | "appearance" | "about";
+type SettingsSection = "start" | "plugins" | "shortcuts" | "appearance" | "about";
 
 export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
   const { t } = useTranslation();
-  const [activeSection, setActiveSection] = useState<SettingsSection>("plugins");
+  const [activeSection, setActiveSection] = useState<SettingsSection>("start");
   const [payload, setPayload] = useState<PluginDirectoryPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [overlayVisible, setOverlayVisibleState] = useState(true);
   const [overlayBusy, setOverlayBusy] = useState(false);
-  const [overlayAppearance] = useState<OverlayAppearance>(getOverlayAppearance);
+  const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(getOverlayAppearance);
   const [rawMouseDebug, setRawMouseDebug] = useState<RawMouseDebugPayload | null>(null);
   const [appVersion, setAppVersion] = useState("0.1.0");
 
@@ -139,6 +142,19 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
     setPayload(await updatePluginSetting(plugin.id, key, value));
   };
 
+  const updateGlobalAppearance = (appearance: Partial<OverlayAppearance>) => {
+    setError(null);
+    setOverlayAppearanceState((currentAppearance) => {
+      const nextAppearance = {
+        ...currentAppearance,
+        ...appearance,
+      };
+
+      setOverlayAppearance(nextAppearance).catch((caught) => setError(String(caught)));
+      return nextAppearance;
+    });
+  };
+
   return (
     <main className="flex h-screen min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <WindowTitleBar />
@@ -168,6 +184,10 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
       >
         <Tabs.ListContainer className="z-10 shrink-0 bg-background">
           <Tabs.List aria-label={t("settings.title")}>
+            <Tabs.Tab id="start" className="h-12">
+              {t("nav.start")}
+              <Tabs.Indicator />
+            </Tabs.Tab>
             <Tabs.Tab id="plugins" className="h-12">
               {t("nav.plugins")}
               <Tabs.Indicator />
@@ -186,6 +206,17 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
             </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
+
+        <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="start">
+          <StartPage
+            color={overlayAppearance.color || defaultOverlayAppearance.color}
+            customColors={overlayAppearance.customColors}
+            opacity={overlayAppearance.opacity}
+            onColorChange={(color) => updateGlobalAppearance({ color })}
+            onCustomColorsChange={(customColors) => updateGlobalAppearance({ customColors })}
+            onOpacityChange={(opacity) => updateGlobalAppearance({ opacity })}
+          />
+        </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="plugins">
           <PluginSettingsPanel

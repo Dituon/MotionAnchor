@@ -1,4 +1,4 @@
-import { emit } from "@tauri-apps/api/event";
+import { emit, emitTo } from "@tauri-apps/api/event";
 
 import { readStoredJson, writeStoredValue } from "../preferences/storage";
 
@@ -27,7 +27,10 @@ export async function setOverlayAppearance(appearance: OverlayAppearance) {
   const nextAppearance = normalizeOverlayAppearance(appearance);
 
   writeStoredValue(storageKey, nextAppearance);
-  await emit(overlayAppearanceChangedEvent, nextAppearance).catch(console.error);
+  await Promise.all([
+    emit(overlayAppearanceChangedEvent, nextAppearance).catch(console.error),
+    emitTo("main", overlayAppearanceChangedEvent, nextAppearance).catch(console.error),
+  ]);
   return nextAppearance;
 }
 

@@ -5,6 +5,8 @@
   "windows": ["main", "config"],
   "permissions": [
     "core:app:allow-version",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-close",

@@ -43,6 +43,7 @@ export const resources = {
         diagnostics: "Diagnostics",
         plugins: "Plugins",
         shortcuts: "Shortcuts",
+        start: "Start",
       },
       pluginSettings: {
         color: "Color",
@@ -92,6 +93,44 @@ export const resources = {
         rootLabel: "Plugin folder",
         themeDescription: "Uses the system color scheme when set to Follow system.",
         title: "Settings",
+      },
+      start: {
+        addCustomColor: "Add custom color",
+        customColor: "Custom overlay color",
+        customHue: "Custom color hue",
+        deleteCustomColor: "Delete custom color",
+        description: "Quickly adjust the overlay's shared color and opacity.",
+        gameSettingsDescription: "Adjust these options in each game before tuning the overlay.",
+        gameSettingsTitle: "In-game settings",
+        globalColor: "Global overlay color",
+        globalOpacity: "Global overlay opacity",
+        tips: {
+          displayMode: {
+            description: "Use fullscreen windowed or borderless fullscreen when the game supports it.",
+            title: "Prefer fullscreen windowed mode",
+          },
+          fov: {
+            description: "Increase FOV to a comfortable range so motion feels easier to read.",
+            title: "Raise the FOV",
+          },
+          frameRate: {
+            description: "Cap FPS to a stable value instead of chasing short peak framerates.",
+            title: "Keep frame pacing stable",
+          },
+          motionBlur: {
+            description: "Turn off motion blur, film grain, and heavy camera shake when possible.",
+            title: "Disable motion blur",
+          },
+          mouseInput: {
+            description: "Disable mouse smoothing or acceleration if the game exposes those options.",
+            title: "Use raw mouse input",
+          },
+          resolutionScale: {
+            description: "Avoid aggressive dynamic resolution changes that make motion cues inconsistent.",
+            title: "Keep resolution scaling predictable",
+          },
+        },
+        title: "Start",
       },
       shortcuts: {
         actions: {
@@ -159,6 +198,7 @@ export const resources = {
         diagnostics: "诊断",
         plugins: "插件",
         shortcuts: "快捷键",
+        start: "开始",
       },
       pluginSettings: {
         color: "颜色",
@@ -208,6 +248,44 @@ export const resources = {
         rootLabel: "插件目录",
         themeDescription: "选择跟随系统时使用系统明暗主题。",
         title: "设置",
+      },
+      start: {
+        addCustomColor: "添加自定义颜色",
+        customColor: "自定义叠加层颜色",
+        customHue: "自定义颜色色相",
+        deleteCustomColor: "删除自定义颜色",
+        description: "快速调整叠加层的全局颜色与透明度。",
+        gameSettingsDescription: "在调整叠加层之前，建议先在每个游戏中检查这些选项。",
+        gameSettingsTitle: "游戏内设置",
+        globalColor: "全局叠加层颜色",
+        globalOpacity: "全局叠加层透明度",
+        tips: {
+          displayMode: {
+            description: "如果游戏支持，优先使用全屏窗口或无边框全屏模式。",
+            title: "优先使用全屏窗口模式",
+          },
+          fov: {
+            description: "将 FOV 调高到舒适范围，让移动方向和画面运动更容易判断。",
+            title: "调高 FOV",
+          },
+          frameRate: {
+            description: "将帧率限制在稳定值，不必追求短时间峰值帧率。",
+            title: "尽可能保持帧数稳定",
+          },
+          motionBlur: {
+            description: "尽可能关闭动态模糊、胶片颗粒和强烈镜头晃动。",
+            title: "关闭动态模糊",
+          },
+          mouseInput: {
+            description: "如果游戏提供相关选项，关闭鼠标平滑或鼠标加速度。",
+            title: "使用原始鼠标输入",
+          },
+          resolutionScale: {
+            description: "避免过于激进的动态分辨率变化，以免运动反馈忽明忽暗。",
+            title: "保持分辨率缩放可预测",
+          },
+        },
+        title: "开始",
       },
       shortcuts: {
         actions: {
