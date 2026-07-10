@@ -1,0 +1,37 @@
+{
+  "id": "builtin.fullscreen-border",
+  "name": "Fullscreen Border",
+  "kind": "guide",
+  "renderer": "builtin.fullscreenBorder",
+  "enabled": true,
+  "order": 40,
+  "description": "DOM-rendered full-screen border with adjustable thickness.",
+  "settings": {
+    "color": "",
+    "opacity": 0.6,
+    "width": 16
+  },
+  "schema": [
+    {
+      "key": "color",
+      "label": "Color",
+      "kind": "color"
+    },
+    {
+      "key": "width",
+      "label": "Width",
+      "kind": "px",
+      "min": 1.0,
+      "max": 120.0,
+      "step": 1.0
+    },
+    {
+      "key": "opacity",
+      "label": "Opacity",
+      "kind": "number",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.01
+    }
+  ]
+}

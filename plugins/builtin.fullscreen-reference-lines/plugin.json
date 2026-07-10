@@ -1,0 +1,60 @@
+{
+  "id": "builtin.fullscreen-reference-lines",
+  "name": "Fullscreen Reference Lines",
+  "kind": "guide",
+  "renderer": "builtin.fullscreenReferenceLines",
+  "enabled": true,
+  "order": 20,
+  "description": "Four center-axis guide lines that extend to the screen edges.",
+  "settings": {
+    "color": "",
+    "gap": {
+      "unit": "px",
+      "value": 256
+    },
+    "lineWidth": 16,
+    "opacity": 0.4
+  },
+  "schema": [
+    {
+      "key": "color",
+      "label": "Color",
+      "kind": "color"
+    },
+    {
+      "key": "opacity",
+      "label": "Opacity",
+      "kind": "number",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.01
+    },
+    {
+      "key": "lineWidth",
+      "label": "Line width",
+      "kind": "px",
+      "min": 1.0,
+      "max": 40.0,
+      "step": 1.0
+    },
+    {
+      "key": "gap",
+      "label": "Center gap",
+      "kind": "length",
+      "length": {
+        "px": {
+          "defaultValue": 256.0,
+          "min": 0.0,
+          "max": 320.0,
+          "step": 1.0
+        },
+        "percent": {
+          "defaultValue": 10.0,
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        }
+      }
+    }
+  ]
+}

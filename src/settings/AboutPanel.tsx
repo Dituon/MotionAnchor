@@ -1,0 +1,103 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Accordion, Card, Link, Typography } from "@heroui/react";
+import { useTranslation } from "react-i18next";
+
+import type { RawMouseDebugPayload } from "../tauri/types";
+import { RawMouseDebugPanel } from "./RawMouseDebugPanel";
+
+const qqGroupUrl = "https://qm.qq.com/q/q2VsVEyemA";
+const githubUrl = "https://github.com/Dituon/petpet/MotionAnchor";
+
+function isChineseLanguage(language?: string) {
+  return language?.toLowerCase().startsWith("zh") ?? false;
+}
+
+async function openExternalUrl(url: string) {
+  try {
+    await openUrl(url);
+  } catch (error) {
+    console.error("Failed to open external URL", error);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+function handleExternalLinkClick(url: string) {
+  return (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    void openExternalUrl(url);
+  };
+}
+
+export function AboutPanel({ appVersion, debug }: { appVersion: string; debug: RawMouseDebugPayload | null }) {
+  const { i18n, t } = useTranslation();
+  const isChinese = isChineseLanguage(i18n.resolvedLanguage) || isChineseLanguage(i18n.language);
+  const aboutText = isChinese
+    ? {
+        description: "轻量叠加层工具，用来在游戏和应用上建立更稳定的运动参考。",
+        sourceCode: "源代码",
+        title: "关于 MotionAnchor",
+        version: "版本",
+      }
+    : {
+        description: "A lightweight overlay tool for building steadier motion references on top of games and apps.",
+        sourceCode: "Source code",
+        title: "About MotionAnchor",
+        version: "Version",
+      };
+
+  return (
+    <div className="grid gap-3">
+      <Card>
+        <Card.Header>
+          <div>
+            <Card.Title>{aboutText.title}</Card.Title>
+            <Card.Description>{aboutText.description}</Card.Description>
+          </div>
+        </Card.Header>
+        <Card.Content className="grid gap-4">
+          <div className="grid gap-1">
+            <Typography.Paragraph className="text-sm text-muted">{aboutText.version}</Typography.Paragraph>
+            <Typography.Code>{appVersion}</Typography.Code>
+          </div>
+
+          <div className="grid gap-1">
+            <Typography.Paragraph className="text-sm text-muted">{aboutText.sourceCode}</Typography.Paragraph>
+            <Link href={githubUrl} onClick={handleExternalLinkClick(githubUrl)} rel="noreferrer" target="_blank">
+              GitHub
+              <Link.Icon />
+            </Link>
+          </div>
+
+          {isChinese && (
+            <div className="grid gap-1">
+              <Typography.Paragraph className="text-sm text-muted">QQ群</Typography.Paragraph>
+              <Link href={qqGroupUrl} onClick={handleExternalLinkClick(qqGroupUrl)} rel="noreferrer" target="_blank">
+                雾之湖 781804589
+                <Link.Icon />
+              </Link>
+            </div>
+          )}
+        </Card.Content>
+      </Card>
+
+      <Accordion variant="surface">
+        <Accordion.Item id="diagnostics">
+          <Accordion.Heading>
+            <Accordion.Trigger className="flex w-full text-left">
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{t("nav.diagnostics")}</span>
+                <span className="block text-xs text-muted">{t("diagnostics.rawInputDescription")}</span>
+              </span>
+              <Accordion.Indicator />
+            </Accordion.Trigger>
+          </Accordion.Heading>
+          <Accordion.Panel>
+            <Accordion.Body className="px-2 pb-2 pt-3">
+              <RawMouseDebugPanel appVersion={appVersion} debug={debug} />
+            </Accordion.Body>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
+    </div>
+  );
+}
