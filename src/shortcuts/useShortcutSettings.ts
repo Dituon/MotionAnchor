@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
 
-import { getShortcutSettings, setActionShortcuts } from "./shortcutCommands";
+import type { SettingsRuntime } from "../settings/settingsRuntime";
+import { tauriSettingsRuntime } from "../settings/settingsRuntime";
 import type { ShortcutSettingsPayload } from "./types";
 
-export function useShortcutSettings() {
+export function useShortcutSettings(runtime: SettingsRuntime = tauriSettingsRuntime) {
   const [payload, setPayload] = useState<ShortcutSettingsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -12,19 +12,22 @@ export function useShortcutSettings() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
-    getShortcutSettings().then(setPayload).catch((caught) => setError(String(caught)));
-    listen<ShortcutSettingsPayload>("shortcuts-changed", (event) => setPayload(event.payload)).then((cleanup) => {
-      unlisten = cleanup;
-    });
+    runtime.getShortcutSettings().then(setPayload).catch((caught) => setError(String(caught)));
+    runtime
+      .listenShortcutsChanged(setPayload)
+      .then((cleanup) => {
+        unlisten = cleanup;
+      })
+      .catch((caught) => setError(String(caught)));
 
     return () => unlisten?.();
-  }, []);
+  }, [runtime]);
 
   const update = async (actionId: string, shortcuts: string[]) => {
     try {
       setBusyAction(actionId);
       setError(null);
-      setPayload(await setActionShortcuts(actionId, shortcuts));
+      setPayload(await runtime.setActionShortcuts(actionId, shortcuts));
     } catch (caught) {
       setError(String(caught));
     } finally {

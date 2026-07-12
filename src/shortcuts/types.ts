@@ -9,3 +9,7 @@ export type ShortcutAction = {
 export type ShortcutSettingsPayload = {
   actions: ShortcutAction[];
 };
+
+export type ShortcutBindingsPayload = {
+  bindings: Record<string, string[]>;
+};

@@ -148,8 +148,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let _ = plugins::ensure_plugin_directory();
-
     tauri::Builder::default()
         .manage(AppState {
             overlay_visible: Mutex::new(true),
@@ -163,7 +161,7 @@ pub fn run() {
             raw_input::get_raw_mouse_debug,
             raw_input::get_raw_mouse_enabled,
             raw_input::set_raw_mouse_enabled,
-            plugins::list_plugins,
+            plugins::load_plugin_overrides,
             plugins::set_plugin_enabled,
             plugins::update_plugin_setting,
             shortcuts::get_shortcut_settings,

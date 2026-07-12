@@ -4,6 +4,7 @@ import { Keyboard, Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { PluginManifest } from "../plugins/types";
+import type { SettingsRuntime } from "../settings/settingsRuntime";
 import { ShortcutKeys } from "./ShortcutKeys";
 import { ShortcutRecorder } from "./ShortcutRecorder";
 import type { ShortcutAction } from "./types";
@@ -117,9 +118,9 @@ function ActionGroup({
   );
 }
 
-export function ShortcutSettings({ plugins }: { plugins: PluginManifest[] }) {
+export function ShortcutSettings({ plugins, runtime }: { plugins: PluginManifest[]; runtime?: SettingsRuntime }) {
   const { t } = useTranslation();
-  const { busyAction, error, payload, update } = useShortcutSettings();
+  const { busyAction, error, payload, update } = useShortcutSettings(runtime);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
   const pluginNames = useMemo(
     () =>

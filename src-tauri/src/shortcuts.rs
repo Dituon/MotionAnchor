@@ -1,10 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-    path::PathBuf,
-    str::FromStr,
-    sync::Mutex,
-};
+use std::{collections::HashMap, fs, path::PathBuf, str::FromStr, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -12,7 +6,7 @@ use tauri_plugin_global_shortcut::{
     GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState as KeyState,
 };
 
-use crate::{plugins, set_overlay_visibility_inner, AppState};
+use crate::{set_overlay_visibility_inner, AppState};
 
 const SHORTCUTS_CHANGED_EVENT: &str = "shortcuts-changed";
 
@@ -23,26 +17,17 @@ pub struct ShortcutState {
     update_lock: Mutex<()>,
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ShortcutConfig {
+pub struct ShortcutConfig {
     bindings: HashMap<String, Vec<String>>,
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ShortcutAction {
-    id: String,
-    scope: String,
+pub struct PluginShortcutAction {
     operation: String,
-    plugin_id: Option<String>,
-    shortcuts: Vec<String>,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ShortcutSettings {
-    actions: Vec<ShortcutAction>,
+    plugin_id: String,
 }
 
 pub fn handle_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
@@ -65,9 +50,8 @@ pub fn handle_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEven
 }
 
 pub fn initialize(app: &AppHandle) -> Result<(), String> {
-    let valid_actions = action_ids()?;
     let mut bindings = read_config(app)?.bindings;
-    bindings.retain(|action_id, _| valid_actions.contains(action_id));
+    bindings.retain(|action_id, _| is_action_id(action_id));
     if let Err(error) = register_bindings(app, &bindings) {
         let _ = app.global_shortcut().unregister_all();
         return Err(error);
@@ -81,12 +65,14 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_shortcut_settings(state: State<'_, ShortcutState>) -> Result<ShortcutSettings, String> {
+pub fn get_shortcut_settings(state: State<'_, ShortcutState>) -> Result<ShortcutConfig, String> {
     let bindings = state
         .bindings
         .lock()
         .map_err(|_| "shortcut state is unavailable".to_string())?;
-    build_settings(&bindings)
+    Ok(ShortcutConfig {
+        bindings: bindings.clone(),
+    })
 }
 
 #[tauri::command]
@@ -95,13 +81,12 @@ pub fn set_action_shortcuts(
     state: State<'_, ShortcutState>,
     action_id: String,
     shortcuts: Vec<String>,
-) -> Result<ShortcutSettings, String> {
+) -> Result<ShortcutConfig, String> {
     let _update_guard = state
         .update_lock
         .lock()
         .map_err(|_| "shortcut update is unavailable".to_string())?;
-    let valid_actions = action_ids()?;
-    if !valid_actions.contains(&action_id) {
+    if !is_action_id(&action_id) {
         return Err(format!("unknown shortcut action: {action_id}"));
     }
 
@@ -136,56 +121,11 @@ pub fn set_action_shortcuts(
         .lock()
         .map_err(|_| "shortcut state is unavailable".to_string())? = next_bindings.clone();
 
-    let settings = build_settings(&next_bindings)?;
+    let settings = ShortcutConfig {
+        bindings: next_bindings,
+    };
     let _ = app.emit(SHORTCUTS_CHANGED_EVENT, settings.clone());
     Ok(settings)
-}
-
-fn build_settings(bindings: &HashMap<String, Vec<String>>) -> Result<ShortcutSettings, String> {
-    let mut actions = vec![
-        action("overlay.show", "app", "show", None, bindings),
-        action("overlay.hide", "app", "hide", None, bindings),
-        action("overlay.toggle", "app", "toggle", None, bindings),
-    ];
-
-    for plugin in plugins::read_plugin_directory()?.plugins {
-        for operation in ["enable", "disable", "toggle"] {
-            let id = format!("plugin:{}:{operation}", plugin.id);
-            actions.push(action(
-                &id,
-                "plugin",
-                operation,
-                Some(plugin.id.clone()),
-                bindings,
-            ));
-        }
-    }
-
-    Ok(ShortcutSettings { actions })
-}
-
-fn action(
-    id: &str,
-    scope: &str,
-    operation: &str,
-    plugin_id: Option<String>,
-    bindings: &HashMap<String, Vec<String>>,
-) -> ShortcutAction {
-    ShortcutAction {
-        id: id.to_string(),
-        scope: scope.to_string(),
-        operation: operation.to_string(),
-        plugin_id,
-        shortcuts: bindings.get(id).cloned().unwrap_or_default(),
-    }
-}
-
-fn action_ids() -> Result<HashSet<String>, String> {
-    Ok(build_settings(&HashMap::new())?
-        .actions
-        .into_iter()
-        .map(|action| action.id)
-        .collect())
 }
 
 fn dispatch_action(app: &AppHandle, action_id: &str) -> Result<(), String> {
@@ -208,13 +148,31 @@ fn dispatch_action(app: &AppHandle, action_id: &str) -> Result<(), String> {
                 .ok_or_else(|| format!("unknown shortcut action: {action_id}"))?;
 
             match value.1 {
-                "enable" => plugins::set_plugin_enabled_inner(app, value.0, true).map(|_| ()),
-                "disable" => plugins::set_plugin_enabled_inner(app, value.0, false).map(|_| ()),
-                "toggle" => plugins::toggle_plugin_enabled_inner(app, value.0).map(|_| ()),
+                "enable" | "disable" | "toggle" => app
+                    .emit(
+                        "plugin-shortcut-action",
+                        PluginShortcutAction {
+                            operation: value.1.to_string(),
+                            plugin_id: value.0.to_string(),
+                        },
+                    )
+                    .map_err(|error| error.to_string()),
                 _ => Err(format!("unknown shortcut action: {action_id}")),
             }
         }
     }
+}
+
+fn is_action_id(action_id: &str) -> bool {
+    matches!(
+        action_id,
+        "overlay.show" | "overlay.hide" | "overlay.toggle"
+    ) || action_id
+        .strip_prefix("plugin:")
+        .and_then(|value| value.rsplit_once(':'))
+        .is_some_and(|(plugin_id, operation)| {
+            !plugin_id.is_empty() && matches!(operation, "enable" | "disable" | "toggle")
+        })
 }
 
 fn set_overlay_visibility(app: &AppHandle, visible: bool) -> Result<(), String> {

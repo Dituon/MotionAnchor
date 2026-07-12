@@ -1,25 +1,15 @@
 import { useEffect, useState } from "react";
 import { Accordion, Button, Card, Label, Separator, Tabs, ToggleButton, Typography } from "@heroui/react";
 import { Layers } from "lucide-react";
-import { getVersion } from "@tauri-apps/api/app";
-import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 
 import type { AppPreferences } from "../preferences/types";
 import type { PluginDirectoryPayload, PluginManifest } from "../plugins/types";
-import {
-  getOverlayVisible,
-  getRawMouseDebug,
-  loadPlugins,
-  setOverlayVisible,
-  setPluginEnabled,
-  updatePluginSetting,
-} from "../tauri/pluginCommands";
 import type { RawMouseDebugPayload } from "../tauri/types";
 import {
   defaultOverlayAppearance,
+  applyOverlayAppearance,
   getOverlayAppearance,
-  setOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
 import { ShortcutSettings } from "../shortcuts/ShortcutSettings";
@@ -28,10 +18,18 @@ import { AppearanceSettings } from "./AppearanceSettings";
 import { PluginSettingEditor } from "./PluginSettingEditor";
 import { StartPage } from "./StartPage";
 import { WindowTitleBar } from "./WindowTitleBar";
+import type { SettingsRuntime } from "./settingsRuntime";
+import { tauriSettingsRuntime } from "./settingsRuntime";
 
 type SettingsSection = "start" | "plugins" | "shortcuts" | "appearance" | "about";
 
-export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
+export function SettingsPage({
+  preferences,
+  runtime = tauriSettingsRuntime,
+}: {
+  preferences: AppPreferences;
+  runtime?: SettingsRuntime;
+}) {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("start");
   const [payload, setPayload] = useState<PluginDirectoryPayload | null>(null);
@@ -45,7 +43,7 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
   const refresh = async () => {
     try {
       setError(null);
-      setPayload(await loadPlugins());
+      setPayload(await runtime.loadPlugins());
     } catch (caught) {
       setError(String(caught));
     }
@@ -57,7 +55,8 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
     let cancelled = false;
 
     const refreshRawMouseDebug = () => {
-      getRawMouseDebug()
+      runtime
+        .getRawMouseDebug()
         .then((debug) => {
           if (!cancelled) {
             setRawMouseDebug(debug);
@@ -87,7 +86,17 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
 
     refresh();
     refreshRawMouseDebug();
-    getVersion()
+    runtime
+      .getOverlayAppearance()
+      .then((appearance) => {
+        if (!cancelled) {
+          setOverlayAppearanceState(appearance);
+          applyOverlayAppearance(appearance);
+        }
+      })
+      .catch((caught) => setError(String(caught)));
+    runtime
+      .getAppVersion()
       .then((version) => {
         if (!cancelled) {
           setAppVersion(version);
@@ -99,20 +108,23 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
         }
       });
     const debugTimer = window.setInterval(refreshRawMouseDebug, 500);
-    getOverlayVisible()
+    runtime
+      .getOverlayVisible()
       .then(setOverlayVisibleState)
       .catch((caught) => setError(String(caught)));
 
-    listen<PluginDirectoryPayload>("plugins-changed", (event) => {
-      setPayload(event.payload);
-    }).then((unlisten) => {
-      unlistenPlugins = unlisten;
-    });
-    listen<boolean>("overlay-visibility-changed", (event) => {
-      setOverlayVisibleState(event.payload);
-    }).then((unlisten) => {
-      unlistenOverlay = unlisten;
-    });
+    runtime
+      .listenPluginsChanged(setPayload)
+      .then((unlisten) => {
+        unlistenPlugins = unlisten;
+      })
+      .catch((caught) => setError(String(caught)));
+    runtime
+      .listenOverlayVisible(setOverlayVisibleState)
+      .then((unlisten) => {
+        unlistenOverlay = unlisten;
+      })
+      .catch((caught) => setError(String(caught)));
 
     return () => {
       cancelled = true;
@@ -120,13 +132,13 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
       unlistenPlugins?.();
       unlistenOverlay?.();
     };
-  }, []);
+  }, [runtime]);
 
   const updateOverlayVisible = async (visible: boolean) => {
     try {
       setOverlayBusy(true);
       setError(null);
-      setOverlayVisibleState(await setOverlayVisible(visible));
+      setOverlayVisibleState(await runtime.setOverlayVisible(visible));
     } catch (caught) {
       setError(String(caught));
     } finally {
@@ -135,11 +147,11 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
   };
 
   const updateEnabled = async (plugin: PluginManifest, enabled: boolean) => {
-    setPayload(await setPluginEnabled(plugin.id, enabled));
+    setPayload(await runtime.setPluginEnabled(plugin.id, enabled));
   };
 
   const updateSetting = async (plugin: PluginManifest, key: string, value: unknown) => {
-    setPayload(await updatePluginSetting(plugin.id, key, value));
+    setPayload(await runtime.updatePluginSetting(plugin.id, key, value));
   };
 
   const updateGlobalAppearance = (appearance: Partial<OverlayAppearance>) => {
@@ -150,13 +162,14 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
         ...appearance,
       };
 
-      setOverlayAppearance(nextAppearance).catch((caught) => setError(String(caught)));
+      runtime.setOverlayAppearance(nextAppearance).catch((caught) => setError(String(caught)));
+      applyOverlayAppearance(nextAppearance);
       return nextAppearance;
     });
   };
 
   return (
-    <main className="flex h-screen min-h-0 flex-col overflow-hidden bg-background text-foreground">
+    <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <WindowTitleBar />
 
       {error && (
@@ -166,7 +179,7 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
       )}
 
       <ToggleButton
-        className="mx-3 min-h-14 w-[calc(100%_-_1.5rem)] shrink-0 justify-center shadow-surface mb-2"
+        className="mx-3 min-h-14 w-[calc(100%_-_1.5rem)] shrink-0 justify-center shadow-surface my-2"
         isDisabled={overlayBusy}
         isSelected={overlayVisible}
         size="lg"
@@ -233,7 +246,7 @@ export function SettingsPage({ preferences }: { preferences: AppPreferences }) {
         </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="shortcuts">
-          <ShortcutSettings plugins={payload?.plugins ?? []} />
+          <ShortcutSettings plugins={payload?.plugins ?? []} runtime={runtime} />
         </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="about">
@@ -310,23 +323,23 @@ function PluginAccordionItem({
   return (
     <Accordion.Item id={plugin.id}>
       <Accordion.Heading>
-        <div className="group w-full items-center gap-2">
-          <Accordion.Trigger className="flex w-full min-w-0 text-left transition-colors">
-            <span className="min-w-0 flex-1 w-full">
+        <div className="group flex w-full items-center gap-2">
+          <Accordion.Trigger className="flex min-w-0 flex-1 text-left transition-colors">
+            <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{pluginName}</span>
               <span className="block truncate text-xs text-muted">
                 {plugin.kind} / {plugin.id}
               </span>
             </span>
-            <ToggleButton
-              className="mx-4 border-2 border-transparent group-hover:border-muted"
-              isSelected={plugin.enabled}
-              onChange={(enabled) => onUpdateEnabled(plugin, enabled)}
-            >
-              {plugin.enabled ? t("common.enabled") : t("common.disabled")}
-            </ToggleButton>
             <Accordion.Indicator />
           </Accordion.Trigger>
+          <ToggleButton
+            className="mr-4 shrink-0 border-2 border-transparent group-hover:border-muted"
+            isSelected={plugin.enabled}
+            onChange={(enabled) => onUpdateEnabled(plugin, enabled)}
+          >
+            {plugin.enabled ? t("common.enabled") : t("common.disabled")}
+          </ToggleButton>
         </div>
       </Accordion.Heading>
       <Accordion.Panel>
