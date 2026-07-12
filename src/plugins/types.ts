@@ -29,7 +29,6 @@ export type PluginManifest = {
   id: string;
   name: string;
   kind: string;
-  renderer: string;
   enabled: boolean;
   order: number;
   description: string;
@@ -40,6 +39,16 @@ export type PluginManifest = {
 export type PluginDirectoryPayload = {
   root: string;
   plugins: PluginManifest[];
+};
+
+export type PluginOverride = {
+  enabled?: boolean;
+  settings?: Record<string, unknown>;
+};
+
+export type PluginOverridesPayload = {
+  root: string;
+  plugins: Record<string, PluginOverride>;
 };
 
 export type RawMousePayload = {
@@ -73,4 +82,19 @@ export type PluginInstance = {
 
 export type PluginModule = {
   mount: (root: HTMLElement, api: PluginApi) => PluginInstance | void;
+};
+
+export type PluginSettingDefinition = Omit<PluginSettingSchema, "key"> & {
+  defaultValue: unknown;
+};
+
+export type PluginRegistration = {
+  id: string;
+  name: string;
+  kind: string;
+  enabledByDefault: boolean;
+  order: number;
+  description: string;
+  settings: Record<string, PluginSettingDefinition>;
+  mount: PluginModule["mount"];
 };

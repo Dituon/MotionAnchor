@@ -315,7 +315,7 @@ function PluginAccordionItem({
             <span className="min-w-0 flex-1 w-full">
               <span className="block truncate font-medium">{pluginName}</span>
               <span className="block truncate text-xs text-muted">
-                {plugin.kind} / {plugin.renderer}
+                {plugin.kind} / {plugin.id}
               </span>
             </span>
             <ToggleButton

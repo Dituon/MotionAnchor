@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
-import { missingPluginModule, pluginModules } from "../plugins/renderers";
-import type { MotionFrame, PluginDirectoryPayload, PluginInstance, PluginManifest, RawMousePayload } from "../plugins/types";
-import { getOverlayVisible, loadPlugins, setRawMouseEnabled } from "../tauri/pluginCommands";
+import { pluginModules, createPluginsPayload } from "../plugins/registry";
+import type {
+  MotionFrame,
+  PluginInstance,
+  PluginManifest,
+  PluginOverridesPayload,
+  RawMousePayload,
+} from "../plugins/types";
+import { getOverlayVisible, loadPlugins, setPluginEnabled, setRawMouseEnabled } from "../tauri/pluginCommands";
 import {
   applyOverlayAppearance,
   getOverlayAppearance,
@@ -32,11 +38,15 @@ type PendingMotion = {
 };
 
 type MountedPlugin = {
-  renderer: string;
   root: HTMLDivElement;
   instance: PluginInstance;
   setPlugin: (plugin: PluginManifest) => void;
   destroy: () => void;
+};
+
+type PluginShortcutAction = {
+  operation: "enable" | "disable" | "toggle";
+  pluginId: string;
 };
 
 function pluginUsesRawMouse(instance: PluginInstance) {
@@ -51,6 +61,7 @@ export function OverlayStage() {
   const [plugins, setPlugins] = useState<PluginManifest[]>([]);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
+  const pluginsRef = useRef<PluginManifest[]>([]);
   const motionRef = useRef<MotionFrame>(emptyMotion);
   const requestFrameRef = useRef<() => void>(() => {});
   const overlayVisibleRef = useRef(true);
@@ -88,8 +99,13 @@ export function OverlayStage() {
     }
 
     const root = document.createElement("div");
-    const module = pluginModules[plugin.renderer] ?? missingPluginModule(plugin);
+    const module = pluginModules[plugin.id];
     let currentPlugin = plugin;
+
+    if (!module) {
+      console.warn(`MotionAnchor plugin is not registered: ${plugin.id}`);
+      return;
+    }
 
     root.className = "plugin-host";
     root.dataset.pluginId = plugin.id;
@@ -103,7 +119,6 @@ export function OverlayStage() {
       }) ?? {};
 
     mountedPluginsRef.current.set(plugin.id, {
-      renderer: plugin.renderer,
       root,
       instance,
       setPlugin(nextPlugin) {
@@ -128,6 +143,7 @@ export function OverlayStage() {
     let frameScheduled = false;
     let unlistenMouse: (() => void) | undefined;
     let unlistenPlugins: (() => void) | undefined;
+    let unlistenPluginAction: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
     let unlistenAppearance: (() => void) | undefined;
 
@@ -216,10 +232,23 @@ export function OverlayStage() {
       unlistenMouse = unlisten;
     });
 
-    listen<PluginDirectoryPayload>("plugins-changed", (event) => {
-      setPlugins(event.payload.plugins);
+    listen<PluginOverridesPayload>("plugins-changed", (event) => {
+      setPlugins(createPluginsPayload(event.payload).plugins);
     }).then((unlisten) => {
       unlistenPlugins = unlisten;
+    });
+
+    listen<PluginShortcutAction>("plugin-shortcut-action", (event) => {
+      const plugin = pluginsRef.current.find((candidate) => candidate.id === event.payload.pluginId);
+      if (!plugin) {
+        return;
+      }
+
+      const enabled =
+        event.payload.operation === "toggle" ? !plugin.enabled : event.payload.operation === "enable";
+      setPluginEnabled(plugin.id, enabled).then((payload) => setPlugins(payload.plugins)).catch(console.error);
+    }).then((unlisten) => {
+      unlistenPluginAction = unlisten;
     });
 
     listen<boolean>("overlay-visibility-changed", (event) => {
@@ -248,6 +277,7 @@ export function OverlayStage() {
       setRawMouseEnabled(false).catch(console.error);
       unlistenMouse?.();
       unlistenPlugins?.();
+      unlistenPluginAction?.();
       unlistenOverlay?.();
       unlistenAppearance?.();
       for (const mountedPlugin of mountedPluginsRef.current.values()) {
@@ -258,6 +288,7 @@ export function OverlayStage() {
   }, []);
 
   useEffect(() => {
+    pluginsRef.current = plugins;
     const enabledPlugins = plugins.filter((plugin) => plugin.enabled);
     const enabledIds = new Set(enabledPlugins.map((plugin) => plugin.id));
 
@@ -270,11 +301,9 @@ export function OverlayStage() {
 
     for (const plugin of enabledPlugins) {
       const mountedPlugin = mountedPluginsRef.current.get(plugin.id);
-      if (mountedPlugin?.renderer === plugin.renderer) {
+      if (mountedPlugin) {
         mountedPlugin.setPlugin(plugin);
       } else {
-        mountedPlugin?.destroy();
-        mountedPluginsRef.current.delete(plugin.id);
         mountPlugin(plugin);
       }
     }
