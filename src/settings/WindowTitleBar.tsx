@@ -7,7 +7,7 @@ export type WindowTitleBarControls = {
   onMinimize: () => void;
 };
 
-export function WindowTitleBar({ controls }: { controls: WindowTitleBarControls }) {
+export function WindowTitleBar({ controls }: { controls?: WindowTitleBarControls }) {
   const { t } = useTranslation();
 
   return (
@@ -21,7 +21,7 @@ export function WindowTitleBar({ controls }: { controls: WindowTitleBarControls 
         aria-label={t("window.minimize")}
         size="sm"
         variant="ghost"
-        onPress={controls.onMinimize}
+        onPress={() => controls?.onMinimize()}
       >
         <Minus aria-hidden="true" />
       </Button>
@@ -30,7 +30,7 @@ export function WindowTitleBar({ controls }: { controls: WindowTitleBarControls 
         aria-label={t("window.close")}
         size="sm"
         variant="ghost"
-        onPress={controls.onClose}
+        onPress={() => controls?.onClose()}
       >
         <X aria-hidden="true" />
       </Button>

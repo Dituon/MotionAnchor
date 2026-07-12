@@ -173,7 +173,7 @@ export function SettingsPage({
 
   return (
     <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
-      {windowControls && <WindowTitleBar controls={windowControls} />}
+      <WindowTitleBar controls={windowControls} />
 
       {error && (
         <Card className="mx-3 shrink-0">

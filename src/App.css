@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@source ".";
 
 :root {
   --ma-overlay-color: #4cd964;

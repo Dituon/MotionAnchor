@@ -53,13 +53,24 @@ function scrollToTrial() {
   }
 }
 
-function SiteDownloadButton({ label, size = "md" }: { label: string; size?: "md" | "lg" }) {
+function SiteDownloadButton({
+  className,
+  expandOnMobile = false,
+  label,
+  size = "md",
+}: {
+  className?: string;
+  expandOnMobile?: boolean;
+  label: string;
+  size?: "md" | "lg";
+}) {
   const { i18n, t } = useTranslation(siteNamespace);
   const isChinese = isChineseLanguage(i18n.resolvedLanguage) || isChineseLanguage(i18n.language);
+  const mobileButtonFill = expandOnMobile ? "max-[520px]:min-w-0 max-[520px]:flex-1" : undefined;
 
   if (!isChinese) {
     return (
-      <Button size={size} variant="primary" onPress={() => openExternal(releaseUrl)}>
+      <Button className={className} size={size} variant="primary" onPress={() => openExternal(releaseUrl)}>
         <Download aria-hidden="true" />
         {label}
       </Button>
@@ -67,8 +78,8 @@ function SiteDownloadButton({ label, size = "md" }: { label: string; size?: "md"
   }
 
   return (
-    <ButtonGroup size={size} variant="primary">
-      <Button onPress={() => openExternal(cnDownloadUrl)}>
+    <ButtonGroup className={className} size={size} variant="primary">
+      <Button className={mobileButtonFill} onPress={() => openExternal(cnDownloadUrl)}>
         <Download aria-hidden="true" />
         {label}
       </Button>
@@ -181,6 +192,7 @@ export function SiteApp() {
   const { t } = useTranslation(siteNamespace);
   const preferences = useAppPreferences();
   const runtime = useMemo(() => createDemoSettingsRuntime(), []);
+  const heroActionWidth = "max-[520px]:w-[min(15rem,100%)]";
 
   useEffect(() => {
     document.title = t("documentTitle");
@@ -192,7 +204,7 @@ export function SiteApp() {
         className="min-h-[92svh] border-b border-foreground/15 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--accent)_14%,transparent),transparent_48%),linear-gradient(315deg,color-mix(in_oklch,rgb(244_63_94)_10%,transparent),transparent_42%)] p-4"
       >
         <nav
-          className={`${pageWidth} ${row} min-h-16 justify-between gap-4 max-[860px]:flex-col max-[860px]:items-start max-[860px]:py-3`}
+          className={`${pageWidth} ${row} min-h-16 justify-between gap-4 max-[860px]:flex-col max-[860px]:items-start max-[860px]:py-3 max-[640px]:hidden`}
           aria-label="MotionAnchor"
         >
           <a className={`${row} min-w-0 gap-2.5 font-bold text-foreground no-underline`} href="#top">
@@ -209,19 +221,24 @@ export function SiteApp() {
         </nav>
 
         <div
-          className={`${pageWidth} grid min-h-[calc(92svh-6rem)] grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] items-center gap-10 py-12 pb-16 max-[860px]:grid-cols-1`}
+          className={`${pageWidth} grid min-h-[calc(92svh-6rem)] grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] items-center gap-10 py-12 pb-16 max-[860px]:grid-cols-1 max-[640px]:min-h-[92svh]`}
           id="top"
         >
-          <div className="grid min-w-0 gap-5">
+          <div className="grid min-w-0 gap-5 max-[640px]:justify-items-center max-[640px]:text-center">
             <Typography.Heading className="max-w-[12ch] bg-gradient-to-r from-accent via-accent-hover to-accent-soft-foreground bg-clip-text text-5xl font-semibold leading-[0.94] tracking-tight text-balance text-transparent sm:text-7xl" level={1}>
               MotionAnchor
             </Typography.Heading>
-            <Typography.Paragraph className="max-w-xl text-[1.15rem] text-muted">
+            <Typography.Paragraph className="max-w-xl text-[1.15rem] text-muted max-[640px]:mx-auto">
               {t("hero.summary")}
             </Typography.Paragraph>
-            <div className={`${row} flex-wrap gap-3 max-[520px]:w-full max-[520px]:flex-col max-[520px]:items-stretch`}>
-              <SiteDownloadButton label={t("download.latest")} size="lg" />
-              <Button size="lg" variant="secondary" onPress={scrollToTrial}>
+            <div className={`${row} flex-wrap justify-start gap-3 max-[640px]:justify-center max-[520px]:w-full max-[520px]:flex-col max-[520px]:items-center`}>
+              <SiteDownloadButton
+                className={heroActionWidth}
+                expandOnMobile
+                label={t("download.latest")}
+                size="lg"
+              />
+              <Button className={heroActionWidth} size="lg" variant="secondary" onPress={scrollToTrial}>
                 <MonitorPlay aria-hidden="true" />
                 {t("hero.tryOnline")}
               </Button>
