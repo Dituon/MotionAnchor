@@ -12,13 +12,19 @@ export type LengthUnitConfig = {
   step: number;
 };
 
+export type PluginEnumOption = {
+  label: string;
+  value: string;
+};
+
 export type PluginSettingSchema = {
   key: string;
   label: string;
-  kind: "color" | "length" | "number" | "px" | string;
+  kind: "color" | "enum" | "length" | "number" | "px" | string;
   min?: number;
   max?: number;
   step?: number;
+  options?: PluginEnumOption[];
   length?: {
     px?: LengthUnitConfig;
     percent?: LengthUnitConfig;

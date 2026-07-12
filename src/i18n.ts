@@ -47,10 +47,13 @@ export const resources = {
       },
       pluginSettings: {
         color: "Color",
+        centerFadeSize: "Center fade edge",
+        centerHiddenRadius: "Center hidden radius",
         deformation: "Deformation",
         gap: "Center gap",
         lineWidth: "Line width",
         opacity: "Opacity",
+        shape: "Shape",
         radius: "Radius",
         sensitivity: "Sensitivity",
         smoothness: "Smoothness",
@@ -58,6 +61,12 @@ export const resources = {
         stroke: "Stroke",
         width: "Width",
         followGlobal: "Follow global",
+        options: {
+          shape: {
+            cross: "Cross",
+            x: "X",
+          },
+        },
       },
       plugins: {
         "builtin.directional-pull-ring": {
@@ -202,10 +211,13 @@ export const resources = {
       },
       pluginSettings: {
         color: "颜色",
+        centerFadeSize: "中心渐变边缘",
+        centerHiddenRadius: "中心隐藏半径",
         deformation: "形变量",
         gap: "中心间距",
         lineWidth: "线宽",
         opacity: "不透明度",
+        shape: "形状",
         radius: "半径",
         sensitivity: "灵敏度",
         smoothness: "平滑度",
@@ -213,6 +225,12 @@ export const resources = {
         stroke: "描边宽度",
         width: "宽度",
         followGlobal: "跟随全局",
+        options: {
+          shape: {
+            cross: "十字形",
+            x: "X 形",
+          },
+        },
       },
       plugins: {
         "builtin.directional-pull-ring": {

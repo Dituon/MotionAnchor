@@ -1,5 +1,6 @@
 import type {
   LengthValue,
+  PluginEnumOption,
   PluginDirectoryPayload,
   PluginManifest,
   PluginOverride,
@@ -66,6 +67,23 @@ export function pxSetting({
   };
 }
 
+export function enumSetting({
+  defaultValue,
+  label,
+  options,
+}: {
+  defaultValue: string;
+  label?: string;
+  options: PluginEnumOption[];
+}): PluginSettingDefinition {
+  return {
+    defaultValue,
+    kind: "enum",
+    label: label ?? "Option",
+    options,
+  };
+}
+
 export function lengthSetting({
   defaultValue,
   label,
@@ -116,6 +134,7 @@ export function toPluginManifest(plugin: PluginRegistration, override?: PluginOv
       min: setting.min,
       max: setting.max,
       step: setting.step,
+      options: setting.options,
       length: setting.length,
     })),
   };

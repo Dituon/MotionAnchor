@@ -5,6 +5,8 @@ import {
   ColorSlider,
   ColorSwatch,
   InputGroup,
+  ListBox,
+  Select,
   Slider,
   TextField,
   Typography,
@@ -54,6 +56,24 @@ export function PluginSettingEditor({
         step={setting.step}
         unit={setting.kind === "px" ? "px" : undefined}
         value={typeof value === "number" ? value : 0}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (setting.kind === "enum") {
+    const options = setting.options ?? [];
+    const stringValue = typeof value === "string" ? value : "";
+    const selectedValue = options.some((option) => option.value === stringValue)
+      ? stringValue
+      : (options[0]?.value ?? "");
+
+    return (
+      <EnumSettingEditor
+        label={label}
+        options={options}
+        settingKey={setting.key}
+        value={selectedValue}
         onChange={onChange}
       />
     );
@@ -122,6 +142,57 @@ function NumericSettingEditor({
         onChange={onChange}
       />
     </div>
+  );
+}
+
+function EnumSettingEditor({
+  label,
+  options,
+  settingKey,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: NonNullable<PluginManifest["schema"][number]["options"]>;
+  settingKey: string;
+  value: string;
+  onChange: (value: unknown) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <Select
+      aria-label={label}
+      fullWidth
+      value={value}
+      variant="secondary"
+      onChange={(nextValue) => {
+        if (typeof nextValue === "string") {
+          onChange(nextValue);
+        }
+      }}
+    >
+      <Select.Trigger>
+        <Select.Value />
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          {options.map((option) => {
+            const optionLabel = t(`pluginSettings.options.${settingKey}.${option.value}`, {
+              defaultValue: option.label,
+            });
+
+            return (
+              <ListBox.Item key={option.value} id={option.value} textValue={optionLabel}>
+                {optionLabel}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            );
+          })}
+        </ListBox>
+      </Select.Popover>
+    </Select>
   );
 }
 

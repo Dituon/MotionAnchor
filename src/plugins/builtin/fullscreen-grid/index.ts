@@ -22,6 +22,18 @@ export default definePlugin({
       percent: { defaultValue: 8, min: 1, max: 100, step: 1 },
     }),
     lineWidth: pxSetting({ defaultValue: 1, label: "Line width", min: 1, max: 12, step: 1 }),
+    centerHiddenRadius: lengthSetting({
+      defaultValue: { value: 120, unit: "px" },
+      label: "Center hidden radius",
+      px: { min: 0, max: 640, step: 1 },
+      percent: { defaultValue: 10, min: 0, max: 100, step: 1 },
+    }),
+    centerFadeSize: lengthSetting({
+      defaultValue: { value: 20, unit: "%" },
+      label: "Center fade edge",
+      px: { min: 0, max: 640, step: 1 },
+      percent: { defaultValue: 20, min: 0, max: 100, step: 1 },
+    }),
   },
   mount(root, api) {
     const style = document.createElement("style");
@@ -40,6 +52,18 @@ export default definePlugin({
         background-position:
           calc(50% - (var(--ma-grid-line-width) / 2)) 0,
           0 calc(50% - (var(--ma-grid-line-width) / 2));
+        -webkit-mask-image: radial-gradient(
+          circle at center,
+          transparent 0,
+          transparent var(--ma-grid-center-hidden-radius),
+          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
+        );
+        mask-image: radial-gradient(
+          circle at center,
+          transparent 0,
+          transparent var(--ma-grid-center-hidden-radius),
+          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
+        );
       }
     `;
 
@@ -52,6 +76,13 @@ export default definePlugin({
       grid.style.setProperty("--ma-grid-opacity", String(numberSettingValue(settings, "opacity", 0.16)));
       grid.style.setProperty("--ma-grid-spacing", lengthSettingValue(settings, "spacing", 80));
       grid.style.setProperty("--ma-grid-line-width", `${numberSettingValue(settings, "lineWidth", 1)}px`);
+      grid.style.setProperty("--ma-grid-center-hidden-radius", lengthSettingValue(settings, "centerHiddenRadius", 0));
+      grid.style.setProperty(
+        "--ma-grid-center-fade-size",
+        "centerFadeSize" in settings
+          ? lengthSettingValue(settings, "centerFadeSize", 0)
+          : lengthSettingValue(settings, "centerFadeRadius", 0),
+      );
     };
 
     applySettings();
