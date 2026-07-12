@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Accordion, Button, Card, Label, Separator, Tabs, ToggleButton, Typography } from "@heroui/react";
+import { Accordion, Card, Label, Separator, Tabs, ToggleButton, Typography } from "@heroui/react";
 import { Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -259,6 +259,7 @@ export function SettingsPage({
 
 function PluginSettingsPanel({
   globalColor,
+  //@ts-ignore
   onRefresh,
   onUpdateEnabled,
   onUpdateSetting,
@@ -270,11 +271,11 @@ function PluginSettingsPanel({
   onUpdateSetting: (plugin: PluginManifest, key: string, value: unknown) => void;
   payload: PluginDirectoryPayload | null;
 }) {
-  const { t } = useTranslation();
+  // const { t } = useTranslation();
 
   return (
     <>
-      <Card className="mb-4">
+      {/* <Card className="mb-4">
         <Card.Header>
           <div>
             <Card.Title>{t("settings.overlayTitle")}</Card.Title>
@@ -288,7 +289,7 @@ function PluginSettingsPanel({
             {t("common.refresh")}
           </Button>
         </Card.Footer>
-      </Card>
+      </Card> */}
 
       <Accordion allowsMultipleExpanded className="grid gap-2" variant="surface">
         {payload?.plugins.map((plugin) => (
