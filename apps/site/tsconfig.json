@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@motion-anchor/app/*": ["../../src/*"]
+    }
+  },
+  "include": ["src", "../../src/vite-env.d.ts"]
+}

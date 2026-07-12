@@ -1,5 +1,5 @@
-import type { PluginOverridesPayload } from "../plugins/types";
-import type { ShortcutBindingsPayload } from "../shortcuts/types";
+import type { PluginOverridesPayload } from "@motion-anchor/app/plugins/types";
+import type { ShortcutBindingsPayload } from "@motion-anchor/app/shortcuts/types";
 
 export type SitePluginPreset = {
   id: string;

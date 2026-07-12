@@ -4,10 +4,10 @@ import { animate, set, spring } from "animejs";
 import {
   applyOverlayAppearance,
   getOverlayAppearance,
-} from "../overlay/appearance";
-import { pluginModules } from "../plugins/registry";
-import type { MotionFrame, PluginInstance, PluginManifest } from "../plugins/types";
-import type { SettingsRuntime } from "../settings/settingsRuntime";
+} from "@motion-anchor/app/overlay/appearance";
+import { pluginModules } from "@motion-anchor/app/plugins/registry";
+import type { MotionFrame, PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
+import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
 
 const emptyMotion: MotionFrame = {
   deviceId: 0,

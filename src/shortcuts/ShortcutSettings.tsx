@@ -118,7 +118,7 @@ function ActionGroup({
   );
 }
 
-export function ShortcutSettings({ plugins, runtime }: { plugins: PluginManifest[]; runtime?: SettingsRuntime }) {
+export function ShortcutSettings({ plugins, runtime }: { plugins: PluginManifest[]; runtime: SettingsRuntime }) {
   const { t } = useTranslation();
   const { busyAction, error, payload, update } = useShortcutSettings(runtime);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);

@@ -12,7 +12,6 @@ export default defineConfig(async () => ({
     rollupOptions: {
       input: {
         app: resolve(__dirname, "index.html"),
-        site: resolve(__dirname, "site.html"),
       },
     },
   },

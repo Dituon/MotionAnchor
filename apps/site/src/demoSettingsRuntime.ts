@@ -1,15 +1,20 @@
-import { createPluginsPayload } from "../plugins/registry";
-import type { PluginDirectoryPayload, PluginOverride, PluginOverridesPayload, RawMousePayload } from "../plugins/types";
+import { createPluginsPayload } from "@motion-anchor/app/plugins/registry";
+import type {
+  PluginDirectoryPayload,
+  PluginOverride,
+  PluginOverridesPayload,
+  RawMousePayload,
+} from "@motion-anchor/app/plugins/types";
 import {
   applyOverlayAppearance,
   getOverlayAppearance,
   storeOverlayAppearance,
   type OverlayAppearance,
-} from "../overlay/appearance";
-import type { SettingsRuntime } from "../settings/settingsRuntime";
-import { createShortcutSettings } from "../shortcuts/shortcutCommands";
-import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "../shortcuts/types";
-import type { RawMouseDebugPayload } from "../tauri/types";
+} from "@motion-anchor/app/overlay/appearance";
+import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
+import { createShortcutSettings } from "@motion-anchor/app/shortcuts/shortcutModel";
+import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "@motion-anchor/app/shortcuts/types";
+import type { RawMouseDebugPayload } from "@motion-anchor/app/tauri/types";
 import { createSitePluginOverrides, createSiteShortcutBindings, type SitePluginPreset } from "./siteDefaults";
 
 export type DemoSettingsRuntime = SettingsRuntime & {

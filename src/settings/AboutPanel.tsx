@@ -1,4 +1,3 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { Accordion, Card, Link, Typography } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 
@@ -12,23 +11,26 @@ function isChineseLanguage(language?: string) {
   return language?.toLowerCase().startsWith("zh") ?? false;
 }
 
-async function openExternalUrl(url: string) {
-  try {
-    await openUrl(url);
-  } catch (error) {
-    console.error("Failed to open external URL", error);
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
+function defaultOpenExternalUrl(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
-function handleExternalLinkClick(url: string) {
+function handleExternalLinkClick(url: string, openExternalUrl: (url: string) => void | Promise<void>) {
   return (event: { preventDefault: () => void }) => {
     event.preventDefault();
     void openExternalUrl(url);
   };
 }
 
-export function AboutPanel({ appVersion, debug }: { appVersion: string; debug: RawMouseDebugPayload | null }) {
+export function AboutPanel({
+  appVersion,
+  debug,
+  openExternalUrl = defaultOpenExternalUrl,
+}: {
+  appVersion: string;
+  debug: RawMouseDebugPayload | null;
+  openExternalUrl?: (url: string) => void | Promise<void>;
+}) {
   const { i18n, t } = useTranslation();
   const isChinese = isChineseLanguage(i18n.resolvedLanguage) || isChineseLanguage(i18n.language);
   const aboutText = isChinese
@@ -62,7 +64,12 @@ export function AboutPanel({ appVersion, debug }: { appVersion: string; debug: R
 
           <div className="grid gap-1">
             <Typography.Paragraph className="text-sm text-muted">{aboutText.sourceCode}</Typography.Paragraph>
-            <Link href={githubUrl} onClick={handleExternalLinkClick(githubUrl)} rel="noreferrer" target="_blank">
+            <Link
+              href={githubUrl}
+              onClick={handleExternalLinkClick(githubUrl, openExternalUrl)}
+              rel="noreferrer"
+              target="_blank"
+            >
               GitHub
               <Link.Icon />
             </Link>
@@ -71,7 +78,12 @@ export function AboutPanel({ appVersion, debug }: { appVersion: string; debug: R
           {isChinese && (
             <div className="grid gap-1">
               <Typography.Paragraph className="text-sm text-muted">QQ群</Typography.Paragraph>
-              <Link href={qqGroupUrl} onClick={handleExternalLinkClick(qqGroupUrl)} rel="noreferrer" target="_blank">
+              <Link
+                href={qqGroupUrl}
+                onClick={handleExternalLinkClick(qqGroupUrl, openExternalUrl)}
+                rel="noreferrer"
+                target="_blank"
+              >
                 雾之湖 781804589
                 <Link.Icon />
               </Link>

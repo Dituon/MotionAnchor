@@ -17,18 +17,21 @@ import { AboutPanel } from "./AboutPanel";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { PluginSettingEditor } from "./PluginSettingEditor";
 import { StartPage } from "./StartPage";
-import { WindowTitleBar } from "./WindowTitleBar";
+import { WindowTitleBar, type WindowTitleBarControls } from "./WindowTitleBar";
 import type { SettingsRuntime } from "./settingsRuntime";
-import { tauriSettingsRuntime } from "./settingsRuntime";
 
 type SettingsSection = "start" | "plugins" | "shortcuts" | "appearance" | "about";
 
 export function SettingsPage({
+  openExternalUrl,
   preferences,
-  runtime = tauriSettingsRuntime,
+  runtime,
+  windowControls,
 }: {
+  openExternalUrl?: (url: string) => void | Promise<void>;
   preferences: AppPreferences;
-  runtime?: SettingsRuntime;
+  runtime: SettingsRuntime;
+  windowControls?: WindowTitleBarControls;
 }) {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("start");
@@ -170,7 +173,7 @@ export function SettingsPage({
 
   return (
     <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
-      <WindowTitleBar />
+      {windowControls && <WindowTitleBar controls={windowControls} />}
 
       {error && (
         <Card className="mx-3 shrink-0">
@@ -250,7 +253,7 @@ export function SettingsPage({
         </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="about">
-          <AboutPanel appVersion={appVersion} debug={rawMouseDebug} />
+          <AboutPanel appVersion={appVersion} debug={rawMouseDebug} openExternalUrl={openExternalUrl} />
         </Tabs.Panel>
       </Tabs>
     </main>

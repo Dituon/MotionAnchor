@@ -1,10 +1,10 @@
 import { getVersion } from "@tauri-apps/api/app";
-import { listen } from "@tauri-apps/api/event";
+import { emit, emitTo, listen } from "@tauri-apps/api/event";
 
 import { createPluginsPayload } from "../plugins/registry";
 import type { PluginDirectoryPayload, PluginOverridesPayload, RawMousePayload } from "../plugins/types";
 import type { OverlayAppearance } from "../overlay/appearance";
-import { getOverlayAppearance, setOverlayAppearance } from "../overlay/appearance";
+import { getOverlayAppearance, overlayAppearanceChangedEvent, storeOverlayAppearance } from "../overlay/appearance";
 import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "../shortcuts/types";
 import { createShortcutSettings, getShortcutSettings, setActionShortcuts } from "../shortcuts/shortcutCommands";
 import {
@@ -55,7 +55,15 @@ export const tauriSettingsRuntime: SettingsRuntime = {
     listen<ShortcutBindingsPayload>("shortcuts-changed", (event) => handler(createShortcutSettings(event.payload))),
   loadPlugins,
   setActionShortcuts,
-  setOverlayAppearance,
+  setOverlayAppearance: async (appearance) => {
+    const nextAppearance = storeOverlayAppearance(appearance);
+
+    await Promise.all([
+      emit(overlayAppearanceChangedEvent, nextAppearance).catch(console.error),
+      emitTo("main", overlayAppearanceChangedEvent, nextAppearance).catch(console.error),
+    ]);
+    return nextAppearance;
+  },
   setOverlayVisible,
   setPluginEnabled,
   setRawMouseEnabled,

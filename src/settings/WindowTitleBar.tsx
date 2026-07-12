@@ -1,12 +1,14 @@
 import { Button, Toolbar } from "@heroui/react";
 import { Minus, X } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
 
-export function WindowTitleBar({ onClose }: { onClose?: () => void }) {
+export type WindowTitleBarControls = {
+  onClose: () => void;
+  onMinimize: () => void;
+};
+
+export function WindowTitleBar({ controls }: { controls: WindowTitleBarControls }) {
   const { t } = useTranslation();
-  const minimizeWindow = () => getCurrentWindow().minimize().catch(console.error);
-  const closeWindow = onClose ?? (() => getCurrentWindow().close().catch(console.error));
 
   return (
     <Toolbar
@@ -19,7 +21,7 @@ export function WindowTitleBar({ onClose }: { onClose?: () => void }) {
         aria-label={t("window.minimize")}
         size="sm"
         variant="ghost"
-        onPress={minimizeWindow}
+        onPress={controls.onMinimize}
       >
         <Minus aria-hidden="true" />
       </Button>
@@ -28,7 +30,7 @@ export function WindowTitleBar({ onClose }: { onClose?: () => void }) {
         aria-label={t("window.close")}
         size="sm"
         variant="ghost"
-        onPress={closeWindow}
+        onPress={controls.onClose}
       >
         <X aria-hidden="true" />
       </Button>

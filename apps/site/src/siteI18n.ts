@@ -1,4 +1,4 @@
-import i18n from "../i18n";
+import i18n from "@motion-anchor/app/i18n";
 
 export const siteNamespace = "site";
 

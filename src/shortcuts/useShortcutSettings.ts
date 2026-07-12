@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 
 import type { SettingsRuntime } from "../settings/settingsRuntime";
-import { tauriSettingsRuntime } from "../settings/settingsRuntime";
 import type { ShortcutSettingsPayload } from "./types";
 
-export function useShortcutSettings(runtime: SettingsRuntime = tauriSettingsRuntime) {
+export function useShortcutSettings(runtime: SettingsRuntime) {
   const [payload, setPayload] = useState<ShortcutSettingsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);

@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import "../App.css";
-import "../i18n";
-import { initializeDocumentPreferences } from "../preferences/useAppPreferences";
+import "@motion-anchor/app/App.css";
+import "@motion-anchor/app/i18n";
+import { initializeDocumentPreferences } from "@motion-anchor/app/preferences/useAppPreferences";
 import { SiteApp } from "./SiteApp";
 
 initializeDocumentPreferences();

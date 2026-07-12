@@ -16,16 +16,16 @@ import {
 import { ChevronDown, Code2, Download, MonitorPlay } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import packageJson from "../../package.json";
-import iconUrl from "../../src-tauri/icons/icon.png";
-import { useAppPreferences } from "../preferences/useAppPreferences";
+import packageJson from "../../../package.json";
+import iconUrl from "../../../src-tauri/icons/icon.png";
+import { useAppPreferences } from "@motion-anchor/app/preferences/useAppPreferences";
 import { createDemoSettingsRuntime, type DemoSettingsRuntime } from "./demoSettingsRuntime";
 import { siteNamespace } from "./siteI18n";
 import { sitePluginPresets } from "./siteDefaults";
 import { SiteOverlayPreview } from "./SiteOverlayPreview";
 
 const SettingsPage = lazy(() =>
-  import("../settings/SettingsPage").then((module) => ({ default: module.SettingsPage })),
+  import("@motion-anchor/app/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
 
 const appVersion = packageJson.version;
