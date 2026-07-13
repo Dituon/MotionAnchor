@@ -8,6 +8,7 @@ const SETTINGS_STORE_FILE: &str = "settings.json";
 const SETTINGS_STORE_AUTO_SAVE_MS: u64 = 300;
 
 pub const PLUGIN_OVERRIDES_KEY: &str = "pluginOverrides";
+pub const RAW_INPUT_SETTINGS_KEY: &str = "rawMouseSettings";
 pub const SHORTCUTS_KEY: &str = "shortcuts";
 
 pub fn get<T>(app: &AppHandle, key: &str) -> Result<Option<T>, String>

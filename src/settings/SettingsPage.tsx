@@ -4,8 +4,9 @@ import { Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { AppPreferences } from "../preferences/types";
+import type { PluginEnvironment } from "../plugins/environment";
 import type { PluginDirectoryPayload, PluginManifest } from "../plugins/types";
-import type { RawMouseDebugPayload } from "../tauri/types";
+import type { RawMouseSettingsPayload } from "../tauri/types";
 import {
   defaultOverlayAppearance,
   applyOverlayAppearance,
@@ -39,7 +40,8 @@ export function SettingsPage({
   const [overlayVisible, setOverlayVisibleState] = useState(true);
   const [overlayBusy, setOverlayBusy] = useState(false);
   const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(defaultOverlayAppearance);
-  const [rawMouseDebug, setRawMouseDebug] = useState<RawMouseDebugPayload | null>(null);
+  const [rawMouseSettings, setRawMouseSettings] = useState<RawMouseSettingsPayload | null>(null);
+  const [pluginEnvironment, setPluginEnvironment] = useState<PluginEnvironment>({ debug: false });
   const [appVersion, setAppVersion] = useState("0.1.0");
 
   const refresh = async () => {
@@ -56,38 +58,23 @@ export function SettingsPage({
     let unlistenOverlay: (() => void) | undefined;
     let cancelled = false;
 
-    const refreshRawMouseDebug = () => {
-      runtime
-        .getRawMouseDebug()
-        .then((debug) => {
-          if (!cancelled) {
-            setRawMouseDebug(debug);
-          }
-        })
-        .catch((caught) => {
-          if (!cancelled) {
-            setRawMouseDebug({
-              running: false,
-              status: "error",
-              message: String(caught),
-              mouseCount: 0,
-              keyboardCount: 0,
-              joystickCount: 0,
-              pollCount: 0,
-              emptyPollCount: 0,
-              eventCount: 0,
-              lastEventAtMs: null,
-              lastDx: 0,
-              lastDy: 0,
-              lastSpeed: 0,
-              lastAcceleration: 0,
-            });
-          }
-        });
-    };
-
     refresh();
-    refreshRawMouseDebug();
+    runtime
+      .getRawMouseSettings()
+      .then((settings) => {
+        if (!cancelled) {
+          setRawMouseSettings(settings);
+        }
+      })
+      .catch((caught) => setError(String(caught)));
+    runtime
+      .getPluginEnvironment()
+      .then((environment) => {
+        if (!cancelled) {
+          setPluginEnvironment(environment);
+        }
+      })
+      .catch((caught) => setError(String(caught)));
     runtime
       .getOverlayAppearance()
       .then((appearance) => {
@@ -109,7 +96,6 @@ export function SettingsPage({
           setAppVersion("0.1.0");
         }
       });
-    const debugTimer = window.setInterval(refreshRawMouseDebug, 500);
     runtime
       .getOverlayVisible()
       .then(setOverlayVisibleState)
@@ -130,7 +116,6 @@ export function SettingsPage({
 
     return () => {
       cancelled = true;
-      window.clearInterval(debugTimer);
       unlistenPlugins?.();
       unlistenOverlay?.();
     };
@@ -168,6 +153,24 @@ export function SettingsPage({
       applyOverlayAppearance(nextAppearance);
       return nextAppearance;
     });
+  };
+
+  const updateRawMouseMaxRefreshRate = async (maxRefreshRateHz: number | null) => {
+    try {
+      setError(null);
+      setRawMouseSettings(await runtime.setRawMouseSettings(maxRefreshRateHz));
+    } catch (caught) {
+      setError(String(caught));
+    }
+  };
+
+  const updatePluginEnvironment = async (environment: PluginEnvironment) => {
+    try {
+      setError(null);
+      setPluginEnvironment(await runtime.setPluginEnvironment(environment));
+    } catch (caught) {
+      setError(String(caught));
+    }
   };
 
   return (
@@ -252,7 +255,14 @@ export function SettingsPage({
         </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="about">
-          <AboutPanel appVersion={appVersion} debug={rawMouseDebug} openExternalUrl={openExternalUrl} />
+          <AboutPanel
+            appVersion={appVersion}
+            pluginEnvironment={pluginEnvironment}
+            rawMouseSettings={rawMouseSettings}
+            openExternalUrl={openExternalUrl}
+            onPluginEnvironmentChange={updatePluginEnvironment}
+            onRawMouseMaxRefreshRateChange={updateRawMouseMaxRefreshRate}
+          />
         </Tabs.Panel>
       </Tabs>
     </main>

@@ -45,6 +45,8 @@ export default definePlugin({
       virtualX: 0,
       virtualY: 0,
       lastSeq: -1,
+      lastFrameTime: 0,
+      fps: 0,
       canvasDpr: 1,
       canvasCssSize: 1,
     };
@@ -84,11 +86,12 @@ export default definePlugin({
 
     return {
       usesRawMouse: true,
-      frame() {
+      frame(timeMs) {
         if (!ctx) {
           return false;
         }
 
+        const env = api.env();
         const settings = api.settings();
         const motion = api.motion();
         const dpr = state.canvasDpr;
@@ -118,6 +121,12 @@ export default definePlugin({
         const vectorEase = animeRuntime.eases.outExpo(Math.min(1, Math.max(0.001, response)));
         const angleEase = animeRuntime.eases.outExpo(Math.min(1, Math.max(0.001, angleResponse)));
         const hasFreshMotion = motion.seq !== state.lastSeq;
+
+        if (state.lastFrameTime > 0) {
+          const instantFps = 1000 / Math.max(1, timeMs - state.lastFrameTime);
+          state.fps = state.fps === 0 ? instantFps : lerp(state.fps, instantFps, 0.12);
+        }
+        state.lastFrameTime = timeMs;
 
         if (hasFreshMotion) {
           state.lastSeq = motion.seq;
@@ -193,9 +202,39 @@ export default definePlugin({
 
         ctx.closePath();
         ctx.stroke();
+
+        if (env.debug) {
+          const lines = [
+            `debug: on`,
+            `seq: ${motion.seq}`,
+            `device: ${motion.deviceId}`,
+            `dx/dy: ${motion.dx} / ${motion.dy}`,
+            `speed: ${Math.round(motion.speed)}`,
+            `fps: ${Math.round(state.fps)}`,
+            `pull: ${state.currentPull.toFixed(2)}`,
+          ];
+
+          ctx.font = "11px ui-monospace, SFMono-Regular, Consolas, monospace";
+          ctx.textBaseline = "top";
+          const padding = 8;
+          const lineHeight = 14;
+          const panelWidth = Math.max(...lines.map((line) => ctx.measureText(line).width)) + padding * 2;
+          const panelHeight = lines.length * lineHeight + padding * 2;
+
+          ctx.globalAlpha = 0.72;
+          ctx.fillStyle = "#05070a";
+          ctx.fillRect(6, 6, panelWidth, panelHeight);
+          ctx.globalAlpha = 0.96;
+          ctx.fillStyle = color;
+          lines.forEach((line, index) => {
+            ctx.fillText(line, 6 + padding, 6 + padding + index * lineHeight);
+          });
+        }
+
         ctx.restore();
 
         return (
+          env.debug ||
           hasFreshMotion ||
           Math.abs(state.currentPull) > 0.08 ||
           Math.abs(state.targetPull) > 0.08 ||

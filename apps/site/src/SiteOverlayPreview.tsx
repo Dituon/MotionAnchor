@@ -3,6 +3,7 @@ import { animate, set, spring } from "animejs";
 
 import { applyOverlayAppearance } from "@motion-anchor/app/overlay/appearance";
 import { pluginModules } from "@motion-anchor/app/plugins/registry";
+import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
 import type { MotionFrame, PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
 
@@ -50,6 +51,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
   const backdropRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
+  const environmentRef = useRef<PluginEnvironment>({ debug: false });
   const motionRef = useRef<MotionFrame>(emptyMotion);
   const overlayVisibleRef = useRef(true);
   const pendingRef = useRef<PendingMotion>({
@@ -89,6 +91,11 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     runtime.getOverlayAppearance().then((appearance) => {
       if (!cancelled) {
         applyOverlayAppearance(appearance);
+      }
+    }).catch(console.error);
+    runtime.getPluginEnvironment().then((environment) => {
+      if (!cancelled) {
+        environmentRef.current = environment;
       }
     }).catch(console.error);
     runtime.loadPlugins().then((payload) => {
@@ -242,6 +249,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
 
       const instance =
         module.mount(root, {
+          env: () => environmentRef.current,
           motion: () => motionRef.current,
           plugin: () => currentPlugin,
           settings: () => currentPlugin.settings,

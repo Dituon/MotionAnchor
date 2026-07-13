@@ -1,6 +1,8 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { emit, emitTo, listen } from "@tauri-apps/api/event";
 
+import type { PluginEnvironment } from "../plugins/environment";
+import { getPluginEnvironment, setPluginEnvironment } from "../plugins/environment";
 import { createPluginsPayload } from "../plugins/registry";
 import type { PluginDirectoryPayload, PluginOverridesPayload, RawMousePayload } from "../plugins/types";
 import type { OverlayAppearance } from "../overlay/appearance";
@@ -9,21 +11,23 @@ import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "../shortc
 import { createShortcutSettings, getShortcutSettings, setActionShortcuts } from "../shortcuts/shortcutCommands";
 import {
   getOverlayVisible,
-  getRawMouseDebug,
+  getRawMouseSettings,
   loadPlugins,
   setOverlayVisible,
   setPluginEnabled,
   setRawMouseEnabled,
+  setRawMouseSettings,
   updatePluginSetting,
 } from "../tauri/pluginCommands";
-import type { RawMouseDebugPayload } from "../tauri/types";
+import type { RawMouseSettingsPayload } from "../tauri/types";
 
 type Unlisten = () => void;
 
 export type SettingsRuntime = {
   getAppVersion: () => Promise<string>;
   getOverlayAppearance: () => Promise<OverlayAppearance>;
-  getRawMouseDebug: () => Promise<RawMouseDebugPayload>;
+  getPluginEnvironment: () => Promise<PluginEnvironment>;
+  getRawMouseSettings: () => Promise<RawMouseSettingsPayload>;
   getOverlayVisible: () => Promise<boolean>;
   getShortcutSettings: () => Promise<ShortcutSettingsPayload>;
   listenOverlayVisible: (handler: (visible: boolean) => void) => Promise<Unlisten>;
@@ -34,15 +38,18 @@ export type SettingsRuntime = {
   setActionShortcuts: (actionId: string, shortcuts: string[]) => Promise<ShortcutSettingsPayload>;
   setOverlayAppearance: (appearance: OverlayAppearance) => Promise<OverlayAppearance>;
   setOverlayVisible: (visible: boolean) => Promise<boolean>;
+  setPluginEnvironment: (environment: PluginEnvironment) => Promise<PluginEnvironment>;
   setPluginEnabled: (id: string, enabled: boolean) => Promise<PluginDirectoryPayload>;
   setRawMouseEnabled: (enabled: boolean) => Promise<boolean>;
+  setRawMouseSettings: (maxRefreshRateHz: number | null) => Promise<RawMouseSettingsPayload>;
   updatePluginSetting: (id: string, key: string, value: unknown) => Promise<PluginDirectoryPayload>;
 };
 
 export const tauriSettingsRuntime: SettingsRuntime = {
   getAppVersion: getVersion,
-  getOverlayAppearance: async () => getOverlayAppearance(),
-  getRawMouseDebug,
+  getOverlayAppearance,
+  getPluginEnvironment: async () => getPluginEnvironment(),
+  getRawMouseSettings,
   getOverlayVisible,
   getShortcutSettings,
   listenOverlayVisible: (handler) =>
@@ -65,7 +72,9 @@ export const tauriSettingsRuntime: SettingsRuntime = {
     return nextAppearance;
   },
   setOverlayVisible,
+  setPluginEnvironment,
   setPluginEnabled,
   setRawMouseEnabled,
+  setRawMouseSettings,
   updatePluginSetting,
 };

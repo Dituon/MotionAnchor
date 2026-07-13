@@ -10,10 +10,11 @@ import {
   defaultOverlayAppearance,
   type OverlayAppearance,
 } from "@motion-anchor/app/overlay/appearance";
+import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
 import { createShortcutSettings } from "@motion-anchor/app/shortcuts/shortcutModel";
 import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "@motion-anchor/app/shortcuts/types";
-import type { RawMouseDebugPayload } from "@motion-anchor/app/tauri/types";
+import type { RawMouseSettingsPayload } from "@motion-anchor/app/tauri/types";
 import { createSitePluginOverrides, createSiteShortcutBindings, type SitePluginPreset } from "./siteDefaults";
 
 export type DemoSettingsRuntime = SettingsRuntime & {
@@ -36,28 +37,18 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   let plugins = createPluginsPayload(overrides);
   let shortcutBindings: ShortcutBindingsPayload = createSiteShortcutBindings();
   let overlayAppearance: OverlayAppearance = defaultOverlayAppearance;
+  let pluginEnvironment: PluginEnvironment = { debug: false };
   let overlayVisible = true;
   let rawMouseEnabled = false;
   let rawMouseListening = false;
+  let rawMouseSettings: RawMouseSettingsPayload = {
+    maxRefreshRateHz: null,
+    defaultRefreshRateHz: 120,
+    effectiveRefreshRateHz: 120,
+  };
   let lastRawMouseAt = performance.now();
   let lastRawMouseSpeed = 0;
   let previousMouse: { x: number; y: number } | null = null;
-  let rawMouseDebug: RawMouseDebugPayload = {
-    running: false,
-    status: "idle",
-    message: "Browser demo raw input is idle.",
-    mouseCount: 1,
-    keyboardCount: 1,
-    joystickCount: 0,
-    pollCount: 0,
-    emptyPollCount: 0,
-    eventCount: 0,
-    lastEventAtMs: null,
-    lastDx: 0,
-    lastDy: 0,
-    lastSpeed: 0,
-    lastAcceleration: 0,
-  };
   const overlayListeners = new Set<(visible: boolean) => void>();
   const pluginListeners = new Set<(payload: PluginDirectoryPayload) => void>();
   const rawMouseListeners = new Set<(payload: RawMousePayload) => void>();
@@ -113,13 +104,6 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     previousMouse = { x: event.clientX, y: event.clientY };
 
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) {
-      rawMouseDebug = {
-        ...rawMouseDebug,
-        running: true,
-        status: "running",
-        message: "Browser demo raw input is listening for window mousemove events.",
-        emptyPollCount: rawMouseDebug.emptyPollCount + 1,
-      };
       return;
     }
 
@@ -137,23 +121,6 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       timestampMs: Date.now(),
     };
 
-    rawMouseDebug = {
-      running: true,
-      status: "running",
-      message: "Browser demo raw input is streaming window mousemove deltas.",
-      mouseCount: 1,
-      keyboardCount: 1,
-      joystickCount: 0,
-      pollCount: rawMouseDebug.pollCount + 1,
-      emptyPollCount: rawMouseDebug.emptyPollCount,
-      eventCount: rawMouseDebug.eventCount + 1,
-      lastEventAtMs: payload.timestampMs,
-      lastDx: Number(dx.toFixed(2)),
-      lastDy: Number(dy.toFixed(2)),
-      lastSpeed: Number(speed.toFixed(2)),
-      lastAcceleration: Number(acceleration.toFixed(2)),
-    };
-
     rawMouseListeners.forEach((listener) => listener(payload));
   };
 
@@ -166,12 +133,6 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     previousMouse = null;
     rawMouseListening = true;
     window.addEventListener("mousemove", handleRawMouseMove, { passive: true });
-    rawMouseDebug = {
-      ...rawMouseDebug,
-      running: true,
-      status: "running",
-      message: "Browser demo raw input is listening for window mousemove events.",
-    };
   };
 
   const stopRawMouse = () => {
@@ -181,18 +142,13 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     }
 
     previousMouse = null;
-    rawMouseDebug = {
-      ...rawMouseDebug,
-      running: false,
-      status: "idle",
-      message: "Browser demo raw input is idle.",
-    };
   };
 
   return {
     getAppVersion: async () => "0.1.1 demo",
     getOverlayAppearance: async () => overlayAppearance,
-    getRawMouseDebug: async (): Promise<RawMouseDebugPayload> => rawMouseDebug,
+    getPluginEnvironment: async () => pluginEnvironment,
+    getRawMouseSettings: async () => rawMouseSettings,
     getOverlayVisible: async () => overlayVisible,
     getShortcutSettings: async () => createShortcutSettings(shortcutBindings),
     listenOverlayVisible: async (handler) => {
@@ -233,6 +189,10 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       overlayListeners.forEach((listener) => listener(overlayVisible));
       return overlayVisible;
     },
+    setPluginEnvironment: async (environment) => {
+      pluginEnvironment = environment;
+      return pluginEnvironment;
+    },
     setPluginEnabled: async (id, enabled) => updatePlugin(id, (plugin) => ({ ...plugin, enabled })),
     setRawMouseEnabled: async (enabled) => {
       rawMouseEnabled = enabled;
@@ -244,6 +204,14 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       }
 
       return rawMouseEnabled;
+    },
+    setRawMouseSettings: async (maxRefreshRateHz) => {
+      rawMouseSettings = {
+        maxRefreshRateHz,
+        defaultRefreshRateHz: 120,
+        effectiveRefreshRateHz: maxRefreshRateHz ?? 120,
+      };
+      return rawMouseSettings;
     },
     updatePluginSetting: async (id, key, value) =>
       updatePlugin(id, (plugin) => ({

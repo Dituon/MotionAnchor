@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { createPluginsPayload } from "../plugins/registry";
 import type { PluginDirectoryPayload, PluginOverridesPayload } from "../plugins/types";
-import type { RawMouseDebugPayload } from "./types";
+import type { RawMouseSettingsPayload } from "./types";
 
 export async function loadPluginOverrides() {
   return invoke<PluginOverridesPayload>("load_plugin_overrides");
@@ -24,8 +24,14 @@ export function setRawMouseEnabled(enabled: boolean) {
   return invoke<boolean>("set_raw_mouse_enabled", { enabled });
 }
 
-export function getRawMouseDebug() {
-  return invoke<RawMouseDebugPayload>("get_raw_mouse_debug");
+export function getRawMouseSettings() {
+  return invoke<RawMouseSettingsPayload>("get_raw_mouse_settings");
+}
+
+export function setRawMouseSettings(maxRefreshRateHz: number | null) {
+  return invoke<RawMouseSettingsPayload>("set_raw_mouse_settings", {
+    maxRefreshRateHz,
+  });
 }
 
 export async function setPluginEnabled(id: string, enabled: boolean): Promise<PluginDirectoryPayload> {

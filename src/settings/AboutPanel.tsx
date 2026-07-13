@@ -1,8 +1,10 @@
 import { Accordion, Card, Link, Typography } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 
-import type { RawMouseDebugPayload } from "../tauri/types";
-import { RawMouseDebugPanel } from "./RawMouseDebugPanel";
+import type { PluginEnvironment } from "../plugins/environment";
+import type { RawMouseSettingsPayload } from "../tauri/types";
+import { PluginEnvironmentPanel } from "./PluginEnvironmentPanel";
+import { RawMouseSettingsPanel } from "./RawMouseSettingsPanel";
 
 const qqGroupUrl = "https://qm.qq.com/q/q2VsVEyemA";
 const githubUrl = "https://github.com/Dituon/petpet/MotionAnchor";
@@ -24,12 +26,18 @@ function handleExternalLinkClick(url: string, openExternalUrl: (url: string) => 
 
 export function AboutPanel({
   appVersion,
-  debug,
+  pluginEnvironment,
+  rawMouseSettings,
   openExternalUrl = defaultOpenExternalUrl,
+  onPluginEnvironmentChange,
+  onRawMouseMaxRefreshRateChange,
 }: {
   appVersion: string;
-  debug: RawMouseDebugPayload | null;
+  pluginEnvironment: PluginEnvironment;
+  rawMouseSettings: RawMouseSettingsPayload | null;
   openExternalUrl?: (url: string) => void | Promise<void>;
+  onPluginEnvironmentChange: (environment: PluginEnvironment) => void | Promise<void>;
+  onRawMouseMaxRefreshRateChange: (maxRefreshRateHz: number | null) => void | Promise<void>;
 }) {
   const { i18n, t } = useTranslation();
   const isChinese = isChineseLanguage(i18n.resolvedLanguage) || isChineseLanguage(i18n.language);
@@ -104,8 +112,15 @@ export function AboutPanel({
             </Accordion.Trigger>
           </Accordion.Heading>
           <Accordion.Panel>
-            <Accordion.Body className="px-2 pb-2 pt-3">
-              <RawMouseDebugPanel appVersion={appVersion} debug={debug} />
+            <Accordion.Body className="grid gap-3 px-2 pb-2 pt-3">
+              <PluginEnvironmentPanel
+                environment={pluginEnvironment}
+                onEnvironmentChange={onPluginEnvironmentChange}
+              />
+              <RawMouseSettingsPanel
+                settings={rawMouseSettings}
+                onMaxRefreshRateChange={onRawMouseMaxRefreshRateChange}
+              />
             </Accordion.Body>
           </Accordion.Panel>
         </Accordion.Item>

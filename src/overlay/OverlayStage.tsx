@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
+import {
+  getPluginEnvironment,
+  pluginEnvironmentChangedEvent,
+  type PluginEnvironment,
+} from "../plugins/environment";
 import { pluginModules, createPluginsPayload } from "../plugins/registry";
 import type {
   MotionFrame,
@@ -62,6 +67,7 @@ export function OverlayStage() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
   const pluginsRef = useRef<PluginManifest[]>([]);
+  const environmentRef = useRef<PluginEnvironment>(getPluginEnvironment());
   const motionRef = useRef<MotionFrame>(emptyMotion);
   const requestFrameRef = useRef<() => void>(() => {});
   const overlayVisibleRef = useRef(true);
@@ -113,6 +119,7 @@ export function OverlayStage() {
 
     const instance =
       module.mount(root, {
+        env: () => environmentRef.current,
         motion: () => motionRef.current,
         plugin: () => currentPlugin,
         settings: () => currentPlugin.settings,
@@ -146,6 +153,7 @@ export function OverlayStage() {
     let unlistenPluginAction: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
     let unlistenAppearance: (() => void) | undefined;
+    let unlistenEnvironment: (() => void) | undefined;
 
     const refreshPlugins = async () => {
       const payload = await loadPlugins();
@@ -276,6 +284,13 @@ export function OverlayStage() {
       unlistenAppearance = unlisten;
     });
 
+    listen<PluginEnvironment>(pluginEnvironmentChangedEvent, (event) => {
+      environmentRef.current = event.payload;
+      requestFrame();
+    }).then((unlisten) => {
+      unlistenEnvironment = unlisten;
+    });
+
     return () => {
       cancelled = true;
       cancelAnimationFrame(animationId);
@@ -287,6 +302,7 @@ export function OverlayStage() {
       unlistenPluginAction?.();
       unlistenOverlay?.();
       unlistenAppearance?.();
+      unlistenEnvironment?.();
       for (const mountedPlugin of mountedPluginsRef.current.values()) {
         mountedPlugin.destroy();
       }

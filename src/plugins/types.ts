@@ -72,7 +72,12 @@ export type MotionFrame = RawMousePayload & {
   lastAt: number;
 };
 
+export type PluginEnvironment = {
+  debug: boolean;
+};
+
 export type PluginApi = {
+  env: () => PluginEnvironment;
   motion: () => MotionFrame;
   plugin: () => PluginManifest;
   settings: () => Record<string, unknown>;
