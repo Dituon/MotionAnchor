@@ -7,8 +7,7 @@ import type {
 } from "@motion-anchor/app/plugins/types";
 import {
   applyOverlayAppearance,
-  getOverlayAppearance,
-  storeOverlayAppearance,
+  defaultOverlayAppearance,
   type OverlayAppearance,
 } from "@motion-anchor/app/overlay/appearance";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
@@ -36,7 +35,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   let overrides: PluginOverridesPayload = createSitePluginOverrides();
   let plugins = createPluginsPayload(overrides);
   let shortcutBindings: ShortcutBindingsPayload = createSiteShortcutBindings();
-  let overlayAppearance: OverlayAppearance = getOverlayAppearance();
+  let overlayAppearance: OverlayAppearance = defaultOverlayAppearance;
   let overlayVisible = true;
   let rawMouseEnabled = false;
   let rawMouseListening = false;
@@ -225,7 +224,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     },
     applySitePluginPreset: async (preset) => applyPluginPreset(preset),
     setOverlayAppearance: async (appearance) => {
-      overlayAppearance = storeOverlayAppearance(appearance);
+      overlayAppearance = appearance;
       applyOverlayAppearance(overlayAppearance);
       return overlayAppearance;
     },

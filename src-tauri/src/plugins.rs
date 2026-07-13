@@ -1,8 +1,10 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
+
+use crate::settings_store;
 
 const PLUGINS_CHANGED_EVENT: &str = "plugins-changed";
 
@@ -63,38 +65,23 @@ where
 }
 
 fn read_store(app: &AppHandle) -> Result<PluginOverridesPayload, String> {
-    let path = store_path(app)?;
-    if !path.exists() {
-        return Ok(PluginOverridesPayload {
-            root: root_label(app)?,
-            plugins: HashMap::new(),
-        });
+    if let Some(mut payload) =
+        settings_store::get::<PluginOverridesPayload>(app, settings_store::PLUGIN_OVERRIDES_KEY)?
+    {
+        payload.root = root_label(app)?;
+        return Ok(payload);
     }
 
-    let text = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let mut store: PluginOverridesPayload =
-        serde_json::from_str(&text).map_err(|error| error.to_string())?;
-    store.root = root_label(app)?;
-    Ok(store)
+    Ok(PluginOverridesPayload {
+        root: root_label(app)?,
+        plugins: HashMap::new(),
+    })
 }
 
 fn write_store(app: &AppHandle, store: &PluginOverridesPayload) -> Result<(), String> {
-    let path = store_path(app)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    let text = serde_json::to_string_pretty(store).map_err(|error| error.to_string())?;
-    fs::write(path, text).map_err(|error| error.to_string())
-}
-
-fn store_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_config_dir()
-        .map(|path| path.join("plugin-overrides.json"))
-        .map_err(|error| error.to_string())
+    settings_store::set(app, settings_store::PLUGIN_OVERRIDES_KEY, store)
 }
 
 fn root_label(app: &AppHandle) -> Result<String, String> {
-    store_path(app).map(|path| path.display().to_string())
+    settings_store::path_label(app)
 }

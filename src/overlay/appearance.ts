@@ -15,16 +15,16 @@ export const defaultOverlayAppearance: OverlayAppearance = {
 
 const storageKey = "motionAnchor.overlayAppearance";
 
-export function getOverlayAppearance(): OverlayAppearance {
-  const stored = readStoredJson<Partial<OverlayAppearance>>(storageKey, {});
+export async function getOverlayAppearance(): Promise<OverlayAppearance> {
+  const stored = await readStoredJson<Partial<OverlayAppearance>>(storageKey, {});
 
   return normalizeOverlayAppearance(stored);
 }
 
-export function storeOverlayAppearance(appearance: OverlayAppearance) {
+export async function storeOverlayAppearance(appearance: OverlayAppearance) {
   const nextAppearance = normalizeOverlayAppearance(appearance);
 
-  writeStoredValue(storageKey, nextAppearance);
+  await writeStoredValue(storageKey, nextAppearance);
   return nextAppearance;
 }
 

@@ -210,7 +210,14 @@ export function OverlayStage() {
     };
 
     requestFrameRef.current = requestFrame;
-    applyOverlayAppearance(getOverlayAppearance());
+    getOverlayAppearance()
+      .then((appearance) => {
+        if (!cancelled) {
+          applyOverlayAppearance(appearance);
+          requestFrame();
+        }
+      })
+      .catch(console.error);
     refreshPlugins().catch(console.error);
     getOverlayVisible()
       .then((visible) => {

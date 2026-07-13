@@ -6,7 +6,7 @@ import { initializeDocumentPreferences } from "@motion-anchor/app/preferences/us
 import { SiteApp } from "./SiteApp";
 import "./site.css";
 
-initializeDocumentPreferences();
+initializeDocumentPreferences().catch(console.error);
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

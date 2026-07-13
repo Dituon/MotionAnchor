@@ -56,7 +56,7 @@ export const tauriSettingsRuntime: SettingsRuntime = {
   loadPlugins,
   setActionShortcuts,
   setOverlayAppearance: async (appearance) => {
-    const nextAppearance = storeOverlayAppearance(appearance);
+    const nextAppearance = await storeOverlayAppearance(appearance);
 
     await Promise.all([
       emit(overlayAppearanceChangedEvent, nextAppearance).catch(console.error),

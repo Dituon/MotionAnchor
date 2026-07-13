@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf, str::FromStr, sync::Mutex};
+use std::{collections::HashMap, str::FromStr, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -6,7 +6,7 @@ use tauri_plugin_global_shortcut::{
     GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState as KeyState,
 };
 
-use crate::{set_overlay_visibility_inner, AppState};
+use crate::{set_overlay_visibility_inner, settings_store, AppState};
 
 const SHORTCUTS_CHANGED_EVENT: &str = "shortcuts-changed";
 
@@ -257,31 +257,12 @@ fn register_bindings(
     Ok(())
 }
 
-fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_config_dir()
-        .map(|path| path.join("shortcuts.json"))
-        .map_err(|error| error.to_string())
-}
-
 fn read_config(app: &AppHandle) -> Result<ShortcutConfig, String> {
-    let path = config_path(app)?;
-    if !path.exists() {
-        return Ok(ShortcutConfig::default());
-    }
-
-    let text = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    serde_json::from_str(&text).map_err(|error| error.to_string())
+    settings_store::get(app, settings_store::SHORTCUTS_KEY).map(|config| config.unwrap_or_default())
 }
 
 fn write_config(app: &AppHandle, config: &ShortcutConfig) -> Result<(), String> {
-    let path = config_path(app)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    let text = serde_json::to_string_pretty(config).map_err(|error| error.to_string())?;
-    fs::write(path, text).map_err(|error| error.to_string())
+    settings_store::set(app, settings_store::SHORTCUTS_KEY, config)
 }
 
 #[cfg(test)]

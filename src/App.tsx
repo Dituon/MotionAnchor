@@ -11,7 +11,7 @@ function getWindowType() {
   return new URLSearchParams(window.location.search).get("window");
 }
 
-initializeDocumentPreferences();
+initializeDocumentPreferences().catch(console.error);
 
 function App() {
   const preferences = useAppPreferences();

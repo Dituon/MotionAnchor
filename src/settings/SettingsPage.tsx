@@ -9,7 +9,6 @@ import type { RawMouseDebugPayload } from "../tauri/types";
 import {
   defaultOverlayAppearance,
   applyOverlayAppearance,
-  getOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
 import { ShortcutSettings } from "../shortcuts/ShortcutSettings";
@@ -39,7 +38,7 @@ export function SettingsPage({
   const [error, setError] = useState<string | null>(null);
   const [overlayVisible, setOverlayVisibleState] = useState(true);
   const [overlayBusy, setOverlayBusy] = useState(false);
-  const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(getOverlayAppearance);
+  const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(defaultOverlayAppearance);
   const [rawMouseDebug, setRawMouseDebug] = useState<RawMouseDebugPayload | null>(null);
   const [appVersion, setAppVersion] = useState("0.1.0");
 

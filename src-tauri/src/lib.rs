@@ -9,6 +9,7 @@ use tauri::{
 
 mod plugins;
 mod raw_input;
+mod settings_store;
 mod shortcuts;
 
 const MENU_SHOW_CONFIG: &str = "show-config";
@@ -172,6 +173,7 @@ pub fn run() {
                 .with_handler(shortcuts::handle_shortcut)
                 .build(),
         )
+        .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "config" => {

@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, set, spring } from "animejs";
 
-import {
-  applyOverlayAppearance,
-  getOverlayAppearance,
-} from "@motion-anchor/app/overlay/appearance";
+import { applyOverlayAppearance } from "@motion-anchor/app/overlay/appearance";
 import { pluginModules } from "@motion-anchor/app/plugins/registry";
 import type { MotionFrame, PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
@@ -89,7 +86,11 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     let unlistenPlugins: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
 
-    applyOverlayAppearance(getOverlayAppearance());
+    runtime.getOverlayAppearance().then((appearance) => {
+      if (!cancelled) {
+        applyOverlayAppearance(appearance);
+      }
+    }).catch(console.error);
     runtime.loadPlugins().then((payload) => {
       if (!cancelled) {
         setPlugins(payload.plugins);
