@@ -14,7 +14,7 @@ import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
 import { createShortcutSettings } from "@motion-anchor/app/shortcuts/shortcutModel";
 import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "@motion-anchor/app/shortcuts/types";
-import type { RawMouseSettingsPayload } from "@motion-anchor/app/tauri/types";
+import type { RawMouseSettingsPayload, RawMouseStatusPayload } from "@motion-anchor/app/tauri/types";
 import { createSitePluginOverrides, createSiteShortcutBindings, type SitePluginPreset } from "./siteDefaults";
 
 export type DemoSettingsRuntime = SettingsRuntime & {
@@ -52,6 +52,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   const overlayListeners = new Set<(visible: boolean) => void>();
   const pluginListeners = new Set<(payload: PluginDirectoryPayload) => void>();
   const rawMouseListeners = new Set<(payload: RawMousePayload) => void>();
+  const rawMouseStatusListeners = new Set<(payload: RawMouseStatusPayload) => void>();
   const shortcutListeners = new Set<(payload: ShortcutSettingsPayload) => void>();
 
   const emitPlugins = () => {
@@ -148,6 +149,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     getAppVersion: async () => "0.1.1 demo",
     getOverlayAppearance: async () => overlayAppearance,
     getPluginEnvironment: async () => pluginEnvironment,
+    getRawMouseEnabled: async () => rawMouseEnabled,
     getRawMouseSettings: async () => rawMouseSettings,
     getOverlayVisible: async () => overlayVisible,
     getShortcutSettings: async () => createShortcutSettings(shortcutBindings),
@@ -162,6 +164,10 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     listenRawMouse: async (handler) => {
       rawMouseListeners.add(handler);
       return () => rawMouseListeners.delete(handler);
+    },
+    listenRawMouseStatus: async (handler) => {
+      rawMouseStatusListeners.add(handler);
+      return () => rawMouseStatusListeners.delete(handler);
     },
     listenShortcutsChanged: async (handler) => {
       shortcutListeners.add(handler);

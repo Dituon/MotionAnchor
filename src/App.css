@@ -31,3 +31,14 @@ body {
 .overlay-stage {
   opacity: var(--ma-overlay-opacity, 1);
 }
+
+.remove-spin::-webkit-inner-spin-button,
+.remove-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+.remove-spin {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
