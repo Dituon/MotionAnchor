@@ -73,6 +73,13 @@ struct RawMouseStatusPayload {
     message: String,
 }
 
+fn emit_raw_mouse_status(app: &AppHandle, status: &'static str, message: String) {
+    let _ = app.emit(
+        RAW_MOUSE_STATUS_EVENT,
+        RawMouseStatusPayload { status, message },
+    );
+}
+
 pub struct RawInputState {
     worker: Mutex<Option<RawInputWorker>>,
     settings: Mutex<RawMouseSettingsState>,
@@ -296,13 +303,10 @@ fn start_raw_mouse_worker(
     app: AppHandle,
     _effective_refresh_rate_hz: Arc<AtomicU32>,
 ) -> Result<RawInputWorker, String> {
-    let _ = app.emit_to(
-        "main",
-        RAW_MOUSE_STATUS_EVENT,
-        RawMouseStatusPayload {
-            status: "unsupported",
-            message: "multiinput raw mouse prototype is Windows-only".to_string(),
-        },
+    emit_raw_mouse_status(
+        &app,
+        "unsupported",
+        "multiinput raw mouse prototype is Windows-only".to_string(),
     );
 
     Err("Raw mouse input is Windows-only".to_string())
@@ -357,14 +361,7 @@ fn run_windows_raw_mouse_stream(
         Err(error) => {
             let message = error.to_string();
             let _ = init_tx.send(Err(message.clone()));
-            let _ = app.emit_to(
-                "main",
-                RAW_MOUSE_STATUS_EVENT,
-                RawMouseStatusPayload {
-                    status: "error",
-                    message,
-                },
-            );
+            emit_raw_mouse_status(&app, "error", message);
             return;
         }
     };
@@ -373,16 +370,13 @@ fn run_windows_raw_mouse_stream(
     let device_stats = manager.get_device_stats();
     let _ = init_tx.send(Ok(()));
 
-    let _ = app.emit_to(
-        "main",
-        RAW_MOUSE_STATUS_EVENT,
-        RawMouseStatusPayload {
-            status: "listening",
-            message: format!(
-                "Windows Raw Input mouse stream started. Mice: {}",
-                device_stats.number_of_mice
-            ),
-        },
+    emit_raw_mouse_status(
+        &app,
+        "listening",
+        format!(
+            "Windows Raw Input mouse stream started. Mice: {}",
+            device_stats.number_of_mice
+        ),
     );
 
     let mut pending = PendingRawMousePayload::default();
@@ -439,12 +433,9 @@ fn run_windows_raw_mouse_stream(
         }
     }
 
-    let _ = app.emit_to(
-        "main",
-        RAW_MOUSE_STATUS_EVENT,
-        RawMouseStatusPayload {
-            status: "stopped",
-            message: "Windows Raw Input mouse stream stopped".to_string(),
-        },
+    emit_raw_mouse_status(
+        &app,
+        "stopped",
+        "Windows Raw Input mouse stream stopped".to_string(),
     );
 }

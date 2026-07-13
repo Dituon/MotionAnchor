@@ -10,6 +10,7 @@ import { getOverlayAppearance, overlayAppearanceChangedEvent, storeOverlayAppear
 import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "../shortcuts/types";
 import { createShortcutSettings, getShortcutSettings, setActionShortcuts } from "../shortcuts/shortcutCommands";
 import {
+  getRawMouseEnabled,
   getOverlayVisible,
   getRawMouseSettings,
   loadPlugins,
@@ -19,7 +20,7 @@ import {
   setRawMouseSettings,
   updatePluginSetting,
 } from "../tauri/pluginCommands";
-import type { RawMouseSettingsPayload } from "../tauri/types";
+import type { RawMouseSettingsPayload, RawMouseStatusPayload } from "../tauri/types";
 
 type Unlisten = () => void;
 
@@ -27,12 +28,14 @@ export type SettingsRuntime = {
   getAppVersion: () => Promise<string>;
   getOverlayAppearance: () => Promise<OverlayAppearance>;
   getPluginEnvironment: () => Promise<PluginEnvironment>;
+  getRawMouseEnabled: () => Promise<boolean>;
   getRawMouseSettings: () => Promise<RawMouseSettingsPayload>;
   getOverlayVisible: () => Promise<boolean>;
   getShortcutSettings: () => Promise<ShortcutSettingsPayload>;
   listenOverlayVisible: (handler: (visible: boolean) => void) => Promise<Unlisten>;
   listenPluginsChanged: (handler: (payload: PluginDirectoryPayload) => void) => Promise<Unlisten>;
   listenRawMouse: (handler: (payload: RawMousePayload) => void) => Promise<Unlisten>;
+  listenRawMouseStatus: (handler: (payload: RawMouseStatusPayload) => void) => Promise<Unlisten>;
   listenShortcutsChanged: (handler: (payload: ShortcutSettingsPayload) => void) => Promise<Unlisten>;
   loadPlugins: () => Promise<PluginDirectoryPayload>;
   setActionShortcuts: (actionId: string, shortcuts: string[]) => Promise<ShortcutSettingsPayload>;
@@ -49,6 +52,7 @@ export const tauriSettingsRuntime: SettingsRuntime = {
   getAppVersion: getVersion,
   getOverlayAppearance,
   getPluginEnvironment: async () => getPluginEnvironment(),
+  getRawMouseEnabled,
   getRawMouseSettings,
   getOverlayVisible,
   getShortcutSettings,
@@ -58,6 +62,8 @@ export const tauriSettingsRuntime: SettingsRuntime = {
     listen<PluginOverridesPayload>("plugins-changed", (event) => handler(createPluginsPayload(event.payload))),
   listenRawMouse: (handler) =>
     listen<RawMousePayload>("raw-mouse", (event) => handler(event.payload)),
+  listenRawMouseStatus: (handler) =>
+    listen<RawMouseStatusPayload>("raw-mouse-status", (event) => handler(event.payload)),
   listenShortcutsChanged: (handler) =>
     listen<ShortcutBindingsPayload>("shortcuts-changed", (event) => handler(createShortcutSettings(event.payload))),
   loadPlugins,

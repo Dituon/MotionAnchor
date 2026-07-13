@@ -24,6 +24,10 @@ export function setRawMouseEnabled(enabled: boolean) {
   return invoke<boolean>("set_raw_mouse_enabled", { enabled });
 }
 
+export function getRawMouseEnabled() {
+  return invoke<boolean>("get_raw_mouse_enabled");
+}
+
 export function getRawMouseSettings() {
   return invoke<RawMouseSettingsPayload>("get_raw_mouse_settings");
 }

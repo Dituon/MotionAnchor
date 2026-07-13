@@ -7,6 +7,13 @@ export const resources = {
       app: {
         loadingPlugins: "Loading plugins...",
       },
+      about: {
+        description: "A lightweight overlay tool for building steadier motion references on top of games and apps.",
+        qqGroup: "QQ group",
+        sourceCode: "Source code",
+        title: "About MotionAnchor",
+        version: "Version",
+      },
       common: {
         auto: "Follow system",
         cancel: "Cancel",
@@ -32,7 +39,14 @@ export const resources = {
         mice: "Mice",
         never: "Never",
         polls: "Polls",
+        rawInputLabel: "RawInput",
         rawInputDescription: "Tune overlay diagnostics and raw mouse delivery.",
+        rawInputStatus: {
+          error: "Error",
+          listening: "Listening",
+          stopped: "Stopped",
+          unsupported: "Unsupported",
+        },
         rawInputTitle: "Raw Input Debug",
         running: "Running",
         speed: "Speed",
@@ -63,6 +77,7 @@ export const resources = {
         plugins: "Plugins",
         shortcuts: "Shortcuts",
         start: "Start",
+        system: "System",
       },
       pluginSettings: {
         color: "Color",
@@ -190,6 +205,13 @@ export const resources = {
       app: {
         loadingPlugins: "正在加载插件...",
       },
+      about: {
+        description: "轻量叠加层工具，用来在游戏和应用上建立更稳定的运动参考。",
+        qqGroup: "QQ群",
+        sourceCode: "源代码",
+        title: "关于 MotionAnchor",
+        version: "版本",
+      },
       common: {
         auto: "跟随系统",
         cancel: "取消",
@@ -213,7 +235,14 @@ export const resources = {
         mice: "鼠标",
         never: "从未",
         polls: "轮询",
+        rawInputLabel: "RawInput",
         rawInputDescription: "来自原生输入桥接的实时状态。",
+        rawInputStatus: {
+          error: "错误",
+          listening: "监听中",
+          stopped: "已停止",
+          unsupported: "不支持",
+        },
         rawInputTitle: "原始输入调试",
         running: "运行中",
         speed: "速度",
@@ -227,6 +256,7 @@ export const resources = {
         plugins: "插件",
         shortcuts: "快捷键",
         start: "开始",
+        system: "系统",
       },
       pluginSettings: {
         color: "颜色",

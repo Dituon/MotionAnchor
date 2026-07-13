@@ -3,3 +3,8 @@ export type RawMouseSettingsPayload = {
   defaultRefreshRateHz: number;
   effectiveRefreshRateHz: number;
 };
+
+export type RawMouseStatusPayload = {
+  status: string;
+  message: string;
+};

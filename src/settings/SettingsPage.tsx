@@ -4,23 +4,20 @@ import { Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { AppPreferences } from "../preferences/types";
-import type { PluginEnvironment } from "../plugins/environment";
 import type { PluginDirectoryPayload, PluginManifest } from "../plugins/types";
-import type { RawMouseSettingsPayload } from "../tauri/types";
 import {
   defaultOverlayAppearance,
   applyOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
 import { ShortcutSettings } from "../shortcuts/ShortcutSettings";
-import { AboutPanel } from "./AboutPanel";
-import { AppearanceSettings } from "./AppearanceSettings";
 import { PluginSettingEditor } from "./PluginSettingEditor";
 import { StartPage } from "./StartPage";
+import { SystemSettings } from "./SystemSettings";
 import { WindowTitleBar, type WindowTitleBarControls } from "./WindowTitleBar";
 import type { SettingsRuntime } from "./settingsRuntime";
 
-type SettingsSection = "start" | "plugins" | "shortcuts" | "appearance" | "about";
+type SettingsSection = "start" | "plugins" | "shortcuts" | "system";
 
 export function SettingsPage({
   openExternalUrl,
@@ -40,9 +37,6 @@ export function SettingsPage({
   const [overlayVisible, setOverlayVisibleState] = useState(true);
   const [overlayBusy, setOverlayBusy] = useState(false);
   const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(defaultOverlayAppearance);
-  const [rawMouseSettings, setRawMouseSettings] = useState<RawMouseSettingsPayload | null>(null);
-  const [pluginEnvironment, setPluginEnvironment] = useState<PluginEnvironment>({ debug: false });
-  const [appVersion, setAppVersion] = useState("0.1.0");
 
   const refresh = async () => {
     try {
@@ -60,22 +54,6 @@ export function SettingsPage({
 
     refresh();
     runtime
-      .getRawMouseSettings()
-      .then((settings) => {
-        if (!cancelled) {
-          setRawMouseSettings(settings);
-        }
-      })
-      .catch((caught) => setError(String(caught)));
-    runtime
-      .getPluginEnvironment()
-      .then((environment) => {
-        if (!cancelled) {
-          setPluginEnvironment(environment);
-        }
-      })
-      .catch((caught) => setError(String(caught)));
-    runtime
       .getOverlayAppearance()
       .then((appearance) => {
         if (!cancelled) {
@@ -84,18 +62,6 @@ export function SettingsPage({
         }
       })
       .catch((caught) => setError(String(caught)));
-    runtime
-      .getAppVersion()
-      .then((version) => {
-        if (!cancelled) {
-          setAppVersion(version);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAppVersion("0.1.0");
-        }
-      });
     runtime
       .getOverlayVisible()
       .then(setOverlayVisibleState)
@@ -155,24 +121,6 @@ export function SettingsPage({
     });
   };
 
-  const updateRawMouseMaxRefreshRate = async (maxRefreshRateHz: number | null) => {
-    try {
-      setError(null);
-      setRawMouseSettings(await runtime.setRawMouseSettings(maxRefreshRateHz));
-    } catch (caught) {
-      setError(String(caught));
-    }
-  };
-
-  const updatePluginEnvironment = async (environment: PluginEnvironment) => {
-    try {
-      setError(null);
-      setPluginEnvironment(await runtime.setPluginEnvironment(environment));
-    } catch (caught) {
-      setError(String(caught));
-    }
-  };
-
   return (
     <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <WindowTitleBar controls={windowControls} />
@@ -210,16 +158,12 @@ export function SettingsPage({
               {t("nav.plugins")}
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="appearance" className="h-12">
-              {t("nav.appearance")}
-              <Tabs.Indicator />
-            </Tabs.Tab>
             <Tabs.Tab id="shortcuts" className="h-12">
               {t("nav.shortcuts")}
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="about" className="h-12">
-              {t("nav.about")}
+            <Tabs.Tab id="system" className="h-12">
+              {t("nav.system")}
               <Tabs.Indicator />
             </Tabs.Tab>
           </Tabs.List>
@@ -246,22 +190,15 @@ export function SettingsPage({
           />
         </Tabs.Panel>
 
-        <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="appearance">
-          <AppearanceSettings preferences={preferences} />
-        </Tabs.Panel>
-
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="shortcuts">
           <ShortcutSettings plugins={payload?.plugins ?? []} runtime={runtime} />
         </Tabs.Panel>
 
-        <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="about">
-          <AboutPanel
-            appVersion={appVersion}
-            pluginEnvironment={pluginEnvironment}
-            rawMouseSettings={rawMouseSettings}
+        <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="system">
+          <SystemSettings
+            preferences={preferences}
+            runtime={runtime}
             openExternalUrl={openExternalUrl}
-            onPluginEnvironmentChange={updatePluginEnvironment}
-            onRawMouseMaxRefreshRateChange={updateRawMouseMaxRefreshRate}
           />
         </Tabs.Panel>
       </Tabs>
