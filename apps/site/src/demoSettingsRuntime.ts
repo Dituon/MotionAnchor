@@ -50,6 +50,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   let lastRawMouseSpeed = 0;
   let previousMouse: { x: number; y: number } | null = null;
   const overlayListeners = new Set<(visible: boolean) => void>();
+  const overlayAppearanceListeners = new Set<(appearance: OverlayAppearance) => void>();
   const pluginListeners = new Set<(payload: PluginDirectoryPayload) => void>();
   const rawMouseListeners = new Set<(payload: RawMousePayload) => void>();
   const rawMouseStatusListeners = new Set<(payload: RawMouseStatusPayload) => void>();
@@ -157,6 +158,10 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       overlayListeners.add(handler);
       return () => overlayListeners.delete(handler);
     },
+    listenOverlayAppearance: async (handler) => {
+      overlayAppearanceListeners.add(handler);
+      return () => overlayAppearanceListeners.delete(handler);
+    },
     listenPluginsChanged: async (handler) => {
       pluginListeners.add(handler);
       return () => pluginListeners.delete(handler);
@@ -188,6 +193,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     setOverlayAppearance: async (appearance) => {
       overlayAppearance = appearance;
       applyOverlayAppearance(overlayAppearance);
+      overlayAppearanceListeners.forEach((listener) => listener(overlayAppearance));
       return overlayAppearance;
     },
     setOverlayVisible: async (visible) => {

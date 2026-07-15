@@ -6,10 +6,13 @@ import { useTranslation } from "react-i18next";
 import type { AppPreferences } from "../preferences/types";
 import type { PluginDirectoryPayload, PluginManifest } from "../plugins/types";
 import {
+  createGlobalPaint,
   defaultOverlayAppearance,
+  getActiveOverlayPaint,
   applyOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
+import type { Paint } from "./paint";
 import { ShortcutSettings } from "../shortcuts/ShortcutSettings";
 import { PluginSettingEditor } from "./PluginSettingEditor";
 import { StartPage } from "./StartPage";
@@ -50,6 +53,7 @@ export function SettingsPage({
   useEffect(() => {
     let unlistenPlugins: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
+    let unlistenAppearance: (() => void) | undefined;
     let cancelled = false;
 
     refresh();
@@ -79,11 +83,21 @@ export function SettingsPage({
         unlistenOverlay = unlisten;
       })
       .catch((caught) => setError(String(caught)));
+    runtime
+      .listenOverlayAppearance((appearance) => {
+        setOverlayAppearanceState(appearance);
+        applyOverlayAppearance(appearance);
+      })
+      .then((unlisten) => {
+        unlistenAppearance = unlisten;
+      })
+      .catch((caught) => setError(String(caught)));
 
     return () => {
       cancelled = true;
       unlistenPlugins?.();
       unlistenOverlay?.();
+      unlistenAppearance?.();
     };
   }, [runtime]);
 
@@ -107,19 +121,51 @@ export function SettingsPage({
     setPayload(await runtime.updatePluginSetting(plugin.id, key, value));
   };
 
-  const updateGlobalAppearance = (appearance: Partial<OverlayAppearance>) => {
+  const updateGlobalAppearance = (update: Partial<OverlayAppearance> | ((appearance: OverlayAppearance) => OverlayAppearance)) => {
     setError(null);
     setOverlayAppearanceState((currentAppearance) => {
-      const nextAppearance = {
-        ...currentAppearance,
-        ...appearance,
-      };
+      const nextAppearance = typeof update === "function" ? update(currentAppearance) : { ...currentAppearance, ...update };
 
       runtime.setOverlayAppearance(nextAppearance).catch((caught) => setError(String(caught)));
       applyOverlayAppearance(nextAppearance);
       return nextAppearance;
     });
   };
+
+  const selectGlobalPaint = (paintId: string) => updateGlobalAppearance({ activePaintId: paintId });
+  const addGlobalPaint = () =>
+    updateGlobalAppearance((currentAppearance) => {
+      const paint = createGlobalPaint(getActiveOverlayPaint(currentAppearance), String(currentAppearance.paints.length + 1));
+
+      return {
+        ...currentAppearance,
+        activePaintId: paint.id,
+        paints: [...currentAppearance.paints, paint],
+      };
+    });
+  const deleteGlobalPaint = (paintId: string) =>
+    updateGlobalAppearance((currentAppearance) => {
+      if (currentAppearance.paints.length <= 1) {
+        return currentAppearance;
+      }
+
+      const deletedIndex = currentAppearance.paints.findIndex((paint) => paint.id === paintId);
+      const paints = currentAppearance.paints.filter((paint) => paint.id !== paintId);
+      const fallbackPaint = paints[Math.max(0, deletedIndex - 1)] ?? paints[0];
+
+      return {
+        ...currentAppearance,
+        activePaintId: currentAppearance.activePaintId === paintId ? fallbackPaint.id : currentAppearance.activePaintId,
+        paints,
+      };
+    });
+  const updateActivePaint = (paint: Paint) =>
+    updateGlobalAppearance((currentAppearance) => ({
+      ...currentAppearance,
+      paints: currentAppearance.paints.map((globalPaint) =>
+        globalPaint.id === currentAppearance.activePaintId ? { ...globalPaint, paint } : globalPaint,
+      ),
+    }));
 
   return (
     <main className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
@@ -171,20 +217,22 @@ export function SettingsPage({
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="start">
           <StartPage
-            color={overlayAppearance.color || defaultOverlayAppearance.color}
-            customColors={overlayAppearance.customColors}
+            activePaint={getActiveOverlayPaint(overlayAppearance)}
+            activePaintId={overlayAppearance.activePaintId}
+            globalPaints={overlayAppearance.paints}
             opacity={overlayAppearance.opacity}
-            onColorChange={(color) => updateGlobalAppearance({ color })}
-            onCustomColorsChange={(customColors) => updateGlobalAppearance({ customColors })}
+            onActivePaintChange={selectGlobalPaint}
+            onGlobalPaintAdd={addGlobalPaint}
+            onGlobalPaintDelete={deleteGlobalPaint}
             onOpacityChange={(opacity) => updateGlobalAppearance({ opacity })}
+            onPaintChange={updateActivePaint}
           />
         </Tabs.Panel>
 
         <Tabs.Panel className="min-h-0 flex-1 overflow-y-auto p-3" id="plugins">
           <PluginSettingsPanel
+            globalPaint={getActiveOverlayPaint(overlayAppearance)}
             payload={payload}
-            globalColor={overlayAppearance.color}
-            onRefresh={refresh}
             onUpdateEnabled={updateEnabled}
             onUpdateSetting={updateSetting}
           />
@@ -207,61 +255,38 @@ export function SettingsPage({
 }
 
 function PluginSettingsPanel({
-  globalColor,
-  //@ts-ignore
-  onRefresh,
+  globalPaint,
   onUpdateEnabled,
   onUpdateSetting,
   payload,
 }: {
-  globalColor: string;
-  onRefresh: () => void;
+  globalPaint: Paint;
   onUpdateEnabled: (plugin: PluginManifest, enabled: boolean) => void;
   onUpdateSetting: (plugin: PluginManifest, key: string, value: unknown) => void;
   payload: PluginDirectoryPayload | null;
 }) {
-  // const { t } = useTranslation();
-
   return (
-    <>
-      {/* <Card className="mb-4">
-        <Card.Header>
-          <div>
-            <Card.Title>{t("settings.overlayTitle")}</Card.Title>
-            <Card.Description>
-              {t("settings.rootLabel")}: {payload?.root ?? t("app.loadingPlugins")}
-            </Card.Description>
-          </div>
-        </Card.Header>
-        <Card.Footer>
-          <Button variant="outline" onPress={onRefresh}>
-            {t("common.refresh")}
-          </Button>
-        </Card.Footer>
-      </Card> */}
-
-      <Accordion allowsMultipleExpanded className="grid gap-2" variant="surface">
-        {payload?.plugins.map((plugin) => (
-          <PluginAccordionItem
-            key={plugin.id}
-            globalColor={globalColor}
-            plugin={plugin}
-            onUpdateEnabled={onUpdateEnabled}
-            onUpdateSetting={onUpdateSetting}
-          />
-        ))}
-      </Accordion>
-    </>
+    <Accordion allowsMultipleExpanded className="grid gap-2" variant="surface">
+      {payload?.plugins.map((plugin) => (
+        <PluginAccordionItem
+          key={plugin.id}
+          globalPaint={globalPaint}
+          plugin={plugin}
+          onUpdateEnabled={onUpdateEnabled}
+          onUpdateSetting={onUpdateSetting}
+        />
+      ))}
+    </Accordion>
   );
 }
 
 function PluginAccordionItem({
-  globalColor,
+  globalPaint,
   onUpdateEnabled,
   onUpdateSetting,
   plugin,
 }: {
-  globalColor: string;
+  globalPaint: Paint;
   onUpdateEnabled: (plugin: PluginManifest, enabled: boolean) => void;
   onUpdateSetting: (plugin: PluginManifest, key: string, value: unknown) => void;
   plugin: PluginManifest;
@@ -300,9 +325,9 @@ function PluginAccordionItem({
               <Separator />
               <Label>{t(`pluginSettings.${setting.key}`, { defaultValue: setting.label })}</Label>
               <PluginSettingEditor
+                inheritedPaint={globalPaint}
                 plugin={plugin}
                 setting={setting}
-                inheritedColor={globalColor}
                 onChange={(value) => onUpdateSetting(plugin, setting.key, value)}
               />
             </div>

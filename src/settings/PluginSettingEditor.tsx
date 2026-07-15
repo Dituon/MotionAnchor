@@ -1,31 +1,26 @@
 import {
   Button,
-  ColorArea,
-  ColorPicker,
-  ColorSlider,
-  ColorSwatch,
   InputGroup,
   ListBox,
   Select,
   Slider,
   TextField,
-  Typography,
-  parseColor,
 } from "@heroui/react";
 import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { LengthUnit, LengthUnitConfig, LengthValue, PluginManifest } from "../plugins/types";
+import { PaintInput, normalizePaint, type Paint } from "./paint";
 
 type PluginSettingEditorProps = {
+  inheritedPaint: Paint;
   plugin: PluginManifest;
   setting: PluginManifest["schema"][number];
   onChange: (value: unknown) => void;
-  inheritedColor: string;
 };
 
 export function PluginSettingEditor({
-  inheritedColor,
+  inheritedPaint,
   plugin,
   setting,
   onChange,
@@ -34,16 +29,28 @@ export function PluginSettingEditor({
   const value = plugin.settings[setting.key];
   const label = t(`pluginSettings.${setting.key}`, { defaultValue: setting.label });
 
-  if (setting.kind === "color") {
-    const colorValue = typeof value === "string" ? value : "";
+  if (setting.kind === "paint") {
+    const paintValue = parsePaintSettingValue(value);
+    const isFollowingGlobal = !paintValue;
 
     return (
-      <ColorSettingEditor
-        inheritedColor={inheritedColor}
-        label={label}
-        value={colorValue}
-        onChange={onChange}
-      />
+      <div className="grid gap-2">
+        <PaintInput
+          label={label}
+          solidOnly={setting.solidOnly}
+          value={paintValue ?? inheritedPaint}
+          onChange={onChange}
+        />
+        <Button
+          isDisabled={isFollowingGlobal}
+          size="sm"
+          variant="secondary"
+          onPress={() => onChange(null)}
+        >
+          <RotateCcw aria-hidden="true" />
+          {t("pluginSettings.followGlobal")}
+        </Button>
+      </div>
     );
   }
 
@@ -298,46 +305,6 @@ function NumberInputGroup({
   );
 }
 
-function ColorSettingEditor({
-  label,
-  inheritedColor,
-  value,
-  onChange,
-}: {
-  label: string;
-  inheritedColor: string;
-  value: string;
-  onChange: (value: unknown) => void;
-}) {
-  const { t } = useTranslation();
-  const color = parseColor(value || inheritedColor);
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ColorPicker aria-label={label} value={color} onChange={(nextColor) => onChange(nextColor.toString("hex"))}>
-        <ColorPicker.Trigger>
-          <ColorSwatch aria-label={label} color={value || inheritedColor} size="sm" />
-          <Typography.Code>{value || t("pluginSettings.followGlobal")}</Typography.Code>
-        </ColorPicker.Trigger>
-        <ColorPicker.Popover>
-          <ColorArea aria-label={label} colorSpace="hsb" xChannel="saturation" yChannel="brightness">
-            <ColorArea.Thumb />
-          </ColorArea>
-          <ColorSlider aria-label={label} colorSpace="hsb" channel="hue">
-            <ColorSlider.Track>
-              <ColorSlider.Thumb />
-            </ColorSlider.Track>
-          </ColorSlider>
-        </ColorPicker.Popover>
-      </ColorPicker>
-      <Button isDisabled={!value} size="sm" variant="secondary" onPress={() => onChange("")}>
-        <RotateCcw aria-hidden="true" />
-        {t("pluginSettings.followGlobal")}
-      </Button>
-    </div>
-  );
-}
-
 function normalizeLengthValue(value: unknown, setting: PluginManifest["schema"][number]): LengthValue {
   if (isRecord(value)) {
     const numericValue = value.value;
@@ -355,6 +322,14 @@ function normalizeLengthValue(value: unknown, setting: PluginManifest["schema"][
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function parsePaintSettingValue(value: unknown): Paint | null {
+  if (isRecord(value) && typeof value.type === "string") {
+    return normalizePaint(value as unknown as Paint);
+  }
+
+  return null;
 }
 
 function isLengthUnit(value: unknown): value is LengthUnit {

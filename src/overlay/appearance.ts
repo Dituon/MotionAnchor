@@ -1,16 +1,30 @@
 import { readStoredJson, writeStoredValue } from "../preferences/storage";
+import { defaultSolidPaint, normalizePaint, paintToCss } from "../settings/paint/paintUtils";
+import type { Paint } from "../settings/paint/types";
+
+export type GlobalPaint = {
+  id: string;
+  name: string;
+  paint: Paint;
+};
 
 export type OverlayAppearance = {
-  color: string;
-  customColors: string[];
+  activePaintId: string;
   opacity: number;
+  paints: GlobalPaint[];
 };
 
 export const overlayAppearanceChangedEvent = "overlay-appearance-changed";
+export const defaultGlobalPaint: GlobalPaint = {
+  id: "global-paint-1",
+  name: "1",
+  paint: defaultSolidPaint,
+};
+
 export const defaultOverlayAppearance: OverlayAppearance = {
-  color: "#4cd964",
-  customColors: [],
+  activePaintId: defaultGlobalPaint.id,
   opacity: 1,
+  paints: [defaultGlobalPaint],
 };
 
 const storageKey = "motionAnchor.overlayAppearance";
@@ -29,41 +43,53 @@ export async function storeOverlayAppearance(appearance: OverlayAppearance) {
 }
 
 export function applyOverlayAppearance(appearance: OverlayAppearance) {
-  document.documentElement.style.setProperty("--ma-overlay-color", appearance.color);
   document.documentElement.style.setProperty("--ma-overlay-opacity", String(appearance.opacity));
+  document.documentElement.style.setProperty("--ma-overlay-paint", paintToCss(getActiveOverlayPaint(appearance)));
+}
+
+export function getActiveOverlayPaint(appearance: OverlayAppearance): Paint {
+  return (
+    appearance.paints.find((paint) => paint.id === appearance.activePaintId)?.paint ??
+    appearance.paints[0]?.paint ??
+    defaultSolidPaint
+  );
+}
+
+export function createGlobalPaint(paint: Paint = defaultSolidPaint, name?: string): GlobalPaint {
+  return {
+    id: createGlobalPaintId(),
+    name: name ?? "",
+    paint: normalizePaint(paint),
+  };
 }
 
 function normalizeOverlayAppearance(appearance: Partial<OverlayAppearance>): OverlayAppearance {
-  const color = normalizeColor(appearance.color) || defaultOverlayAppearance.color;
-  const customColors = uniqueColors(Array.isArray(appearance.customColors) ? appearance.customColors : []);
+  const paints = normalizeGlobalPaints(appearance.paints);
+  const activePaintId =
+    typeof appearance.activePaintId === "string" && paints.some((paint) => paint.id === appearance.activePaintId)
+      ? appearance.activePaintId
+      : paints[0].id;
   const opacity =
     typeof appearance.opacity === "number" && Number.isFinite(appearance.opacity)
       ? Math.min(1, Math.max(0, appearance.opacity))
       : defaultOverlayAppearance.opacity;
 
-  return { color, customColors, opacity };
+  return { activePaintId, opacity, paints };
 }
 
-export function normalizeColor(color: unknown) {
-  const normalized = typeof color === "string" ? color.trim().toLowerCase() : "";
+function normalizeGlobalPaints(paints: GlobalPaint[] | undefined): GlobalPaint[] {
+  const normalizedPaints =
+    paints
+      ?.filter((paint) => typeof paint?.id === "string")
+      .map((paint, index) => ({
+        id: paint.id,
+        name: typeof paint.name === "string" && paint.name.trim() ? paint.name : String(index + 1),
+        paint: normalizePaint(paint.paint),
+      })) ?? [];
 
-  return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : "";
+  return normalizedPaints.length > 0 ? normalizedPaints : defaultOverlayAppearance.paints;
 }
 
-export function uniqueColors(colors: unknown[]) {
-  const seen = new Set<string>();
-  const normalizedColors: string[] = [];
-
-  for (const color of colors) {
-    const normalized = normalizeColor(color);
-
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-
-    seen.add(normalized);
-    normalizedColors.push(normalized);
-  }
-
-  return normalizedColors;
+function createGlobalPaintId() {
+  return globalThis.crypto?.randomUUID?.() ?? `global-paint-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

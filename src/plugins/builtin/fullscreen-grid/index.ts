@@ -1,6 +1,7 @@
-import { colorSetting, definePlugin, lengthSetting, numberSetting, pxSetting } from "../../definePlugin";
+import { definePlugin, lengthSetting, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
 import {
-  colorSetting as colorSettingValue,
+  clamp01,
+  lengthPixelSetting,
   lengthSetting as lengthSettingValue,
   numberSetting as numberSettingValue,
 } from "../../runtimeSettings";
@@ -13,7 +14,7 @@ export default definePlugin({
   order: 30,
   description: "A screen-wide grid aligned to the center of the display.",
   settings: {
-    color: colorSetting(),
+    color: paintSetting({ label: "Color" }),
     opacity: numberSetting({ defaultValue: 0.2, label: "Opacity", min: 0, max: 1, step: 0.01 }),
     spacing: lengthSetting({
       defaultValue: { value: 160, unit: "px" },
@@ -36,60 +37,82 @@ export default definePlugin({
     }),
   },
   mount(root, api) {
-    const style = document.createElement("style");
-    const grid = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-    style.textContent = `
-      .ma-fullscreen-grid {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        opacity: var(--ma-grid-opacity);
-        background-image:
-          linear-gradient(to right, var(--ma-grid-color) var(--ma-grid-line-width), transparent var(--ma-grid-line-width)),
-          linear-gradient(to bottom, var(--ma-grid-color) var(--ma-grid-line-width), transparent var(--ma-grid-line-width));
-        background-size: var(--ma-grid-spacing) var(--ma-grid-spacing);
-        background-position:
-          calc(50% - (var(--ma-grid-line-width) / 2)) 0,
-          0 calc(50% - (var(--ma-grid-line-width) / 2));
-        -webkit-mask-image: radial-gradient(
-          circle at center,
-          transparent 0,
-          transparent var(--ma-grid-center-hidden-radius),
-          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
-        );
-        mask-image: radial-gradient(
-          circle at center,
-          transparent 0,
-          transparent var(--ma-grid-center-hidden-radius),
-          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
-        );
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.pointerEvents = "none";
+    root.replaceChildren(canvas);
+
+    const draw = () => {
+      if (!ctx) {
+        return;
       }
-    `;
 
-    grid.className = "ma-fullscreen-grid";
-    root.replaceChildren(style, grid);
-
-    const applySettings = () => {
       const settings = api.settings();
-      grid.style.setProperty("--ma-grid-color", colorSettingValue(settings, "color"));
-      grid.style.setProperty("--ma-grid-opacity", String(numberSettingValue(settings, "opacity", 0.16)));
-      grid.style.setProperty("--ma-grid-spacing", lengthSettingValue(settings, "spacing", 80));
-      grid.style.setProperty("--ma-grid-line-width", `${numberSettingValue(settings, "lineWidth", 1)}px`);
-      grid.style.setProperty("--ma-grid-center-hidden-radius", lengthSettingValue(settings, "centerHiddenRadius", 0));
-      grid.style.setProperty(
-        "--ma-grid-center-fade-size",
+      const rect = root.getBoundingClientRect();
+      const width = Math.max(1, rect.width || window.innerWidth);
+      const height = Math.max(1, rect.height || window.innerHeight);
+      const dpr = window.devicePixelRatio || 1;
+      const pixelWidth = Math.ceil(width * dpr);
+      const pixelHeight = Math.ceil(height * dpr);
+      const percentBase = Math.min(width, height);
+      const spacing = Math.max(1, lengthPixelSetting(settings, "spacing", 80, percentBase));
+      const lineWidth = numberSettingValue(settings, "lineWidth", 1);
+      const centerHiddenRadius = lengthSettingValue(settings, "centerHiddenRadius", 0);
+      const centerFadeSize =
         "centerFadeSize" in settings
           ? lengthSettingValue(settings, "centerFadeSize", 0)
-          : lengthSettingValue(settings, "centerFadeRadius", 0),
-      );
+          : lengthSettingValue(settings, "centerFadeRadius", 0);
+
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      canvas.style.webkitMaskImage = `radial-gradient(circle at center, transparent 0, transparent ${centerHiddenRadius}, black calc(${centerHiddenRadius} + ${centerFadeSize}))`;
+      canvas.style.maskImage = canvas.style.webkitMaskImage;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.globalAlpha = clamp01(numberSettingValue(settings, "opacity", 0.16));
+      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+
+      for (let x = width / 2; x <= width; x += spacing) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let x = width / 2 - spacing; x >= 0; x -= spacing) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let y = height / 2; y <= height; y += spacing) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      for (let y = height / 2 - spacing; y >= 0; y -= spacing) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+
+      ctx.stroke();
+      ctx.restore();
     };
 
-    applySettings();
+    const resize = () => draw();
+    window.addEventListener("resize", resize);
+    draw();
 
     return {
-      updatePlugin: applySettings,
+      updatePlugin: draw,
       destroy() {
+        window.removeEventListener("resize", resize);
         root.replaceChildren();
       },
     };

@@ -1,30 +1,28 @@
 import {
   Button,
   Card,
-  ColorArea,
-  ColorPicker,
-  ColorSlider,
-  ColorSwatch,
-  ColorSwatchPicker,
   Label,
   Separator,
   Slider,
   Typography,
-  parseColor,
 } from "@heroui/react";
 import { EyeOff, Gauge, Maximize2, Monitor, MousePointer2, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useState, type ComponentType } from "react";
+import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
-import { normalizeColor, uniqueColors } from "../overlay/appearance";
+import type { GlobalPaint } from "../overlay/appearance";
+import { PaintEditorButton, PaintSwatch, type Paint } from "./paint";
 
 type StartPageProps = {
-  color: string;
-  customColors: string[];
-  onColorChange: (color: string) => void;
-  onCustomColorsChange: (colors: string[]) => void;
+  activePaintId: string;
+  globalPaints: GlobalPaint[];
+  onActivePaintChange: (paintId: string) => void;
+  onGlobalPaintAdd: () => void;
+  onGlobalPaintDelete: (paintId: string) => void;
   onOpacityChange: (opacity: number) => void;
+  onPaintChange: (paint: Paint) => void;
   opacity: number;
+  activePaint: Paint;
 };
 
 type GameSettingTip = {
@@ -41,25 +39,31 @@ const gameSettingTips = [
   { icon: Maximize2, key: "resolutionScale" },
 ] satisfies GameSettingTip[];
 
-const globalColorPresets = ["#4cd964", "#30c7ff", "#f43f5e", "#f59e0b", "#f4f7fb"];
+const roundIconButtonClass = "h-10 w-10 min-w-0 shrink-0 rounded-full p-0";
 
 export function StartPage({
-  color,
-  customColors,
-  onColorChange,
-  onCustomColorsChange,
+  activePaint,
+  activePaintId,
+  globalPaints,
+  onActivePaintChange,
+  onGlobalPaintAdd,
+  onGlobalPaintDelete,
   onOpacityChange,
+  onPaintChange,
   opacity,
 }: StartPageProps) {
   return (
     <div className="grid gap-3">
       <OverlaySetupCard
-        color={color}
-        customColors={customColors}
+        activePaint={activePaint}
+        activePaintId={activePaintId}
+        globalPaints={globalPaints}
         opacity={opacity}
-        onColorChange={onColorChange}
-        onCustomColorsChange={onCustomColorsChange}
+        onActivePaintChange={onActivePaintChange}
+        onGlobalPaintAdd={onGlobalPaintAdd}
+        onGlobalPaintDelete={onGlobalPaintDelete}
         onOpacityChange={onOpacityChange}
+        onPaintChange={onPaintChange}
       />
       <GameSettingsCard />
     </div>
@@ -67,12 +71,15 @@ export function StartPage({
 }
 
 function OverlaySetupCard({
-  color,
-  customColors,
+  activePaint,
+  activePaintId,
+  globalPaints,
   opacity,
-  onColorChange,
-  onCustomColorsChange,
+  onActivePaintChange,
+  onGlobalPaintAdd,
+  onGlobalPaintDelete,
   onOpacityChange,
+  onPaintChange,
 }: StartPageProps) {
   const { t } = useTranslation();
 
@@ -85,11 +92,14 @@ function OverlaySetupCard({
         </div>
       </Card.Header>
       <Card.Content className="grid gap-5">
-        <GlobalColorSetting
-          color={color}
-          customColors={customColors}
-          onColorChange={onColorChange}
-          onCustomColorsChange={onCustomColorsChange}
+        <GlobalPaintPalette
+          activePaint={activePaint}
+          activePaintId={activePaintId}
+          paints={globalPaints}
+          onAdd={onGlobalPaintAdd}
+          onDelete={onGlobalPaintDelete}
+          onPaintChange={onPaintChange}
+          onSelect={onActivePaintChange}
         />
         <GlobalOpacitySetting opacity={opacity} onOpacityChange={onOpacityChange} />
       </Card.Content>
@@ -97,100 +107,79 @@ function OverlaySetupCard({
   );
 }
 
-function GlobalColorSetting({
-  color,
-  customColors,
-  onColorChange,
-  onCustomColorsChange,
-}: Pick<StartPageProps, "color" | "customColors" | "onColorChange" | "onCustomColorsChange">) {
+function GlobalPaintPalette({
+  activePaint,
+  activePaintId,
+  paints,
+  onAdd,
+  onDelete,
+  onPaintChange,
+  onSelect,
+}: {
+  activePaint: Paint;
+  activePaintId: string;
+  paints: GlobalPaint[];
+  onAdd: () => void;
+  onDelete: (paintId: string) => void;
+  onPaintChange: (paint: Paint) => void;
+  onSelect: (paintId: string) => void;
+}) {
   const { t } = useTranslation();
-  const [customColor, setCustomColor] = useState(() => parseOverlayColor(color));
-  const selectedColor = normalizeColor(color);
-  const selectedCustomColor = customColors.find((custom) => normalizeColor(custom) === selectedColor);
-  const colors = uniqueColors([...globalColorPresets, ...customColors]);
-
-  useEffect(() => setCustomColor(parseOverlayColor(color)), [color]);
-
-  const addCustomColor = () => {
-    const nextColor = normalizeColor(customColor.toString("hex"));
-
-    if (isPresetColor(nextColor)) {
-      onColorChange(nextColor);
-      return;
-    }
-
-    onCustomColorsChange(uniqueColors([nextColor, ...customColors]));
-    onColorChange(nextColor);
-  };
-
-  const deleteCustomColor = () => {
-    if (!selectedCustomColor) {
-      return;
-    }
-
-    onCustomColorsChange(customColors.filter((custom) => normalizeColor(custom) !== selectedColor));
-    onColorChange(globalColorPresets[0]);
-  };
+  const activeGlobalPaint = paints.find((paint) => paint.id === activePaintId) ?? paints[0];
 
   return (
     <div className="grid gap-2">
       <Label>{t("start.globalColor")}</Label>
-      <div className="flex flex-wrap items-center gap-2">
-        <ColorSwatchPicker value={color} size="lg" onChange={(nextColor) => onColorChange(nextColor.toString("hex"))}>
-          {colors.map((preset) => (
-            <ColorSwatchPicker.Item key={preset} color={preset}>
-              <ColorSwatchPicker.Swatch />
-              <ColorSwatchPicker.Indicator />
-            </ColorSwatchPicker.Item>
-          ))}
-        </ColorSwatchPicker>
-        <CustomColorPicker color={customColor} onAdd={addCustomColor} onChange={setCustomColor} />
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+          {paints.map((paint, index) => {
+            const isSelected = paint.id === activePaintId;
+            const label = t("start.globalPaintSlot", { index: index + 1 });
+
+            return (
+              <Button
+                key={paint.id}
+                aria-label={label}
+                className={`h-11 w-11 min-w-0 rounded-full p-0 ${
+                  isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
+                }`}
+                variant={isSelected ? "secondary" : "ghost"}
+                onPress={() => onSelect(paint.id)}
+              >
+                <PaintSwatch ariaLabel={label} className="h-9 w-9" paint={paint.paint} />
+              </Button>
+            );
+          })}
+        </div>
         <Button
           isIconOnly
-          aria-label={t("start.deleteCustomColor")}
-          isDisabled={!selectedCustomColor}
-          variant="ghost"
-          onPress={deleteCustomColor}
+          aria-label={t("start.addGlobalPaint")}
+          className={roundIconButtonClass}
+          size="sm"
+          variant="secondary"
+          onPress={onAdd}
+        >
+          <Plus aria-hidden="true" />
+        </Button>
+        <PaintEditorButton
+          className={roundIconButtonClass}
+          label={t("start.editGlobalPaint")}
+          value={activePaint}
+          onChange={onPaintChange}
+        />
+        <Button
+          isIconOnly
+          aria-label={t("start.deleteGlobalPaint")}
+          className={roundIconButtonClass}
+          isDisabled={!activeGlobalPaint || paints.length <= 1}
+          size="sm"
+          variant="tertiary"
+          onPress={() => activeGlobalPaint && onDelete(activeGlobalPaint.id)}
         >
           <Trash2 aria-hidden="true" />
         </Button>
       </div>
     </div>
-  );
-}
-
-function CustomColorPicker({
-  color,
-  onAdd,
-  onChange,
-}: {
-  color: ReturnType<typeof parseColor>;
-  onAdd: () => void;
-  onChange: (color: ReturnType<typeof parseColor>) => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <ColorPicker value={color} onChange={onChange}>
-      <ColorPicker.Trigger aria-label={t("start.customColor")}>
-        <ColorSwatch color={color} size="lg" />
-        <Plus aria-hidden="true" />
-      </ColorPicker.Trigger>
-      <ColorPicker.Popover className="gap-3">
-        <ColorArea aria-label={t("start.customColor")} colorSpace="hsb" xChannel="saturation" yChannel="brightness">
-          <ColorArea.Thumb />
-        </ColorArea>
-        <ColorSlider aria-label={t("start.customHue")} colorSpace="hsb" channel="hue">
-          <ColorSlider.Track>
-            <ColorSlider.Thumb />
-          </ColorSlider.Track>
-        </ColorSlider>
-        <Button size="sm" variant="primary" onPress={onAdd}>
-          <Plus aria-hidden="true" />
-          {t("start.addCustomColor")}
-        </Button>
-      </ColorPicker.Popover>
-    </ColorPicker>
   );
 }
 
@@ -263,12 +252,4 @@ function GameSettingTipRow({ index, tip }: { index: number; tip: GameSettingTip 
       </div>
     </div>
   );
-}
-
-function isPresetColor(color: string) {
-  return globalColorPresets.some((preset) => normalizeColor(preset) === color);
-}
-
-function parseOverlayColor(color: string) {
-  return parseColor(normalizeColor(color) || globalColorPresets[0]);
 }

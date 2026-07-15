@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, set, spring } from "animejs";
 
-import { applyOverlayAppearance } from "@motion-anchor/app/overlay/appearance";
+import {
+  applyOverlayAppearance,
+  defaultOverlayAppearance,
+  getActiveOverlayPaint,
+  type OverlayAppearance,
+} from "@motion-anchor/app/overlay/appearance";
 import { pluginModules } from "@motion-anchor/app/plugins/registry";
+import { createPluginPaintApi } from "@motion-anchor/app/plugins/runtimeSettings";
 import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
 import type { MotionFrame, PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
@@ -22,6 +28,7 @@ const emptyMotion: MotionFrame = {
 type MountedPlugin = {
   destroy: () => void;
   instance: PluginInstance;
+  refresh: () => void;
   root: HTMLDivElement;
   setPlugin: (plugin: PluginManifest) => void;
 };
@@ -52,6 +59,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
   const environmentRef = useRef<PluginEnvironment>({ debug: false });
+  const overlayAppearanceRef = useRef<OverlayAppearance>(defaultOverlayAppearance);
   const motionRef = useRef<MotionFrame>(emptyMotion);
   const overlayVisibleRef = useRef(true);
   const pendingRef = useRef<PendingMotion>({
@@ -85,11 +93,13 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
 
   useEffect(() => {
     let cancelled = false;
+    let unlistenAppearance: (() => void) | undefined;
     let unlistenPlugins: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
 
     runtime.getOverlayAppearance().then((appearance) => {
       if (!cancelled) {
+        overlayAppearanceRef.current = appearance;
         applyOverlayAppearance(appearance);
       }
     }).catch(console.error);
@@ -118,9 +128,20 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     }).then((unlisten) => {
       unlistenOverlay = unlisten;
     }).catch(console.error);
+    runtime.listenOverlayAppearance((appearance) => {
+      overlayAppearanceRef.current = appearance;
+      applyOverlayAppearance(appearance);
+      for (const mountedPlugin of mountedPluginsRef.current.values()) {
+        mountedPlugin.refresh();
+      }
+      requestFrameRef.current();
+    }).then((unlisten) => {
+      unlistenAppearance = unlisten;
+    }).catch(console.error);
 
     return () => {
       cancelled = true;
+      unlistenAppearance?.();
       unlistenPlugins?.();
       unlistenOverlay?.();
     };
@@ -251,6 +272,12 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
         module.mount(root, {
           env: () => environmentRef.current,
           motion: () => motionRef.current,
+          paint: createPluginPaintApi({
+            getGlobalPaint: () => getActiveOverlayPaint(overlayAppearanceRef.current),
+            getSettings: () => currentPlugin.settings,
+            root,
+            viewportElement: stage,
+          }),
           plugin: () => currentPlugin,
           settings: () => currentPlugin.settings,
         }) ?? {};
@@ -258,9 +285,12 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
       mountedPluginsRef.current.set(plugin.id, {
         root,
         instance,
+        refresh() {
+          instance.updatePlugin?.(currentPlugin);
+        },
         setPlugin(nextPlugin) {
           currentPlugin = nextPlugin;
-          instance.updatePlugin?.(nextPlugin);
+          instance.updatePlugin?.(currentPlugin);
           syncRawMouseSubscription();
           requestFrameRef.current();
         },

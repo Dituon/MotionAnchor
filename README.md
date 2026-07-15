@@ -18,7 +18,8 @@ npm run tauri dev
 插件通过 `definePlugin` 声明：
 
 ```ts
-import { definePlugin, colorSetting, numberSetting, pxSetting } from "../../definePlugin";
+import { definePlugin, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
+import { numberSetting as numberSettingValue } from "../../runtimeSettings";
 
 export default definePlugin({
   id: "builtin.example-anchor",
@@ -28,7 +29,7 @@ export default definePlugin({
   order: 50,
   description: "A simple center anchor.",
   settings: {
-    color: colorSetting(),
+    color: paintSetting(),
     size: pxSetting({ defaultValue: 32, label: "Size", min: 4, max: 160, step: 1 }),
     opacity: numberSetting({ defaultValue: 0.8, label: "Opacity", min: 0, max: 1, step: 0.01 }),
   },
@@ -43,15 +44,12 @@ export default definePlugin({
 
     const applySettings = () => {
       const settings = api.settings();
-      const color = typeof settings.color === "string" && settings.color
-        ? settings.color
-        : "var(--ma-overlay-color)";
-      const size = typeof settings.size === "number" ? settings.size : 32;
-      const opacity = typeof settings.opacity === "number" ? settings.opacity : 0.8;
+      const size = numberSettingValue(settings, "size", 32);
+      const opacity = numberSettingValue(settings, "opacity", 0.8);
 
       node.style.width = `${size}px`;
       node.style.height = `${size}px`;
-      node.style.border = `2px solid ${color}`;
+      api.paint.applyBackground(node, "color");
       node.style.opacity = String(opacity);
       node.style.transform = "translate(-50%, -50%)";
     };
@@ -87,9 +85,23 @@ export default definePlugin({
 
 ```ts
 type PluginApi = {
+  env: () => PluginEnvironment;
   motion: () => MotionFrame;
+  paint: PluginPaintApi;
   plugin: () => PluginManifest;
   settings: () => Record<string, unknown>;
+};
+
+type PaintRect = { x: number; y: number; width: number; height: number };
+type PluginPaintOptions = { coordinateSpace?: "local" | "viewport"; fallback?: Paint };
+type PluginCanvasPaintOptions = PluginPaintOptions & { rect?: PaintRect };
+
+type PluginPaintApi = {
+  applyBackground: (element: HTMLElement, key: string, options?: PluginPaintOptions) => void;
+  canvasStyle: (ctx: CanvasRenderingContext2D, key: string, options?: PluginCanvasPaintOptions) => string | CanvasGradient;
+  css: (key: string, options?: Pick<PluginPaintOptions, "fallback">) => string;
+  setting: (key: string, fallback?: Paint) => Paint;
+  viewportRect: () => PaintRect;
 };
 
 type PluginInstance = {

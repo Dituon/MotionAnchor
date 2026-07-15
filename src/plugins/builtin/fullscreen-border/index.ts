@@ -1,8 +1,5 @@
-import { colorSetting, definePlugin, numberSetting, pxSetting } from "../../definePlugin";
-import {
-  colorSetting as colorSettingValue,
-  numberSetting as numberSettingValue,
-} from "../../runtimeSettings";
+import { definePlugin, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
+import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
 
 export default definePlugin({
   id: "builtin.fullscreen-border",
@@ -10,42 +7,61 @@ export default definePlugin({
   kind: "guide",
   enabledByDefault: true,
   order: 40,
-  description: "DOM-rendered full-screen border with adjustable thickness.",
+  description: "Canvas-rendered full-screen border with adjustable thickness.",
   settings: {
-    color: colorSetting(),
+    color: paintSetting({ label: "Color" }),
     width: pxSetting({ defaultValue: 16, label: "Width", min: 1, max: 120, step: 1 }),
     opacity: numberSetting({ defaultValue: 0.6, label: "Opacity", min: 0, max: 1, step: 0.01 }),
   },
   mount(root, api) {
-    const style = document.createElement("style");
-    const border = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-    style.textContent = `
-      .ma-fullscreen-border {
-        position: absolute;
-        inset: 0;
-        box-sizing: border-box;
-        border: var(--ma-border-width) solid var(--ma-border-color);
-        opacity: var(--ma-border-opacity);
-        pointer-events: none;
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.pointerEvents = "none";
+    root.replaceChildren(canvas);
+
+    const draw = () => {
+      if (!ctx) {
+        return;
       }
-    `;
 
-    border.className = "ma-fullscreen-border";
-    root.replaceChildren(style, border);
-
-    const applySettings = () => {
       const settings = api.settings();
-      border.style.setProperty("--ma-border-color", colorSettingValue(settings, "color"));
-      border.style.setProperty("--ma-border-width", `${numberSettingValue(settings, "width", 16)}px`);
-      border.style.setProperty("--ma-border-opacity", String(numberSettingValue(settings, "opacity", 1)));
+      const rect = root.getBoundingClientRect();
+      const width = Math.max(1, rect.width || window.innerWidth);
+      const height = Math.max(1, rect.height || window.innerHeight);
+      const dpr = window.devicePixelRatio || 1;
+      const pixelWidth = Math.ceil(width * dpr);
+      const pixelHeight = Math.ceil(height * dpr);
+      const lineWidth = numberSettingValue(settings, "width", 16);
+
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.globalAlpha = clamp01(numberSettingValue(settings, "opacity", 1));
+      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
+      ctx.lineWidth = lineWidth;
+      ctx.strokeRect(lineWidth / 2, lineWidth / 2, Math.max(0, width - lineWidth), Math.max(0, height - lineWidth));
+      ctx.restore();
     };
 
-    applySettings();
+    const resize = () => draw();
+    window.addEventListener("resize", resize);
+    draw();
 
     return {
-      updatePlugin: applySettings,
+      updatePlugin: draw,
       destroy() {
+        window.removeEventListener("resize", resize);
         root.replaceChildren();
       },
     };

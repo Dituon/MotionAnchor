@@ -7,6 +7,7 @@ import {
   type PluginEnvironment,
 } from "../plugins/environment";
 import { pluginModules, createPluginsPayload } from "../plugins/registry";
+import { createPluginPaintApi } from "../plugins/runtimeSettings";
 import type {
   MotionFrame,
   PluginInstance,
@@ -17,6 +18,8 @@ import type {
 import { getOverlayVisible, loadPlugins, setPluginEnabled, setRawMouseEnabled } from "../tauri/pluginCommands";
 import {
   applyOverlayAppearance,
+  defaultOverlayAppearance,
+  getActiveOverlayPaint,
   getOverlayAppearance,
   overlayAppearanceChangedEvent,
   type OverlayAppearance,
@@ -43,6 +46,7 @@ type PendingMotion = {
 };
 
 type MountedPlugin = {
+  refresh: () => void;
   root: HTMLDivElement;
   instance: PluginInstance;
   setPlugin: (plugin: PluginManifest) => void;
@@ -68,6 +72,7 @@ export function OverlayStage() {
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
   const pluginsRef = useRef<PluginManifest[]>([]);
   const environmentRef = useRef<PluginEnvironment>(getPluginEnvironment());
+  const overlayAppearanceRef = useRef<OverlayAppearance>(defaultOverlayAppearance);
   const motionRef = useRef<MotionFrame>(emptyMotion);
   const requestFrameRef = useRef<() => void>(() => {});
   const overlayVisibleRef = useRef(true);
@@ -121,6 +126,12 @@ export function OverlayStage() {
       module.mount(root, {
         env: () => environmentRef.current,
         motion: () => motionRef.current,
+        paint: createPluginPaintApi({
+          getGlobalPaint: () => getActiveOverlayPaint(overlayAppearanceRef.current),
+          getSettings: () => currentPlugin.settings,
+          root,
+          viewportElement: stage,
+        }),
         plugin: () => currentPlugin,
         settings: () => currentPlugin.settings,
       }) ?? {};
@@ -128,9 +139,12 @@ export function OverlayStage() {
     mountedPluginsRef.current.set(plugin.id, {
       root,
       instance,
+      refresh() {
+        instance.updatePlugin?.(currentPlugin);
+      },
       setPlugin(nextPlugin) {
         currentPlugin = nextPlugin;
-        instance.updatePlugin?.(nextPlugin);
+        instance.updatePlugin?.(currentPlugin);
         syncRawMouseSubscription();
         requestFrameRef.current();
       },
@@ -221,6 +235,7 @@ export function OverlayStage() {
     getOverlayAppearance()
       .then((appearance) => {
         if (!cancelled) {
+          overlayAppearanceRef.current = appearance;
           applyOverlayAppearance(appearance);
           requestFrame();
         }
@@ -278,7 +293,11 @@ export function OverlayStage() {
     });
 
     listen<OverlayAppearance>(overlayAppearanceChangedEvent, (event) => {
+      overlayAppearanceRef.current = event.payload;
       applyOverlayAppearance(event.payload);
+      for (const mountedPlugin of mountedPluginsRef.current.values()) {
+        mountedPlugin.refresh();
+      }
       requestFrame();
     }).then((unlisten) => {
       unlistenAppearance = unlisten;

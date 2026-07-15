@@ -1,3 +1,35 @@
+import type { Paint } from "../settings/paint/types";
+
+export type PaintRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type PaintCoordinateSpace = "local" | "viewport";
+
+export type PluginPaintOptions = {
+  coordinateSpace?: PaintCoordinateSpace;
+  fallback?: Paint;
+};
+
+export type PluginCanvasPaintOptions = PluginPaintOptions & {
+  rect?: PaintRect;
+};
+
+export type PluginPaintApi = {
+  applyBackground: (element: HTMLElement, key: string, options?: PluginPaintOptions) => void;
+  canvasStyle: (
+    ctx: CanvasRenderingContext2D,
+    key: string,
+    options?: PluginCanvasPaintOptions,
+  ) => string | CanvasGradient;
+  css: (key: string, options?: Pick<PluginPaintOptions, "fallback">) => string;
+  setting: (key: string, fallback?: Paint) => Paint;
+  viewportRect: () => PaintRect;
+};
+
 export type LengthUnit = "%" | "px";
 
 export type LengthValue = {
@@ -20,10 +52,11 @@ export type PluginEnumOption = {
 export type PluginSettingSchema = {
   key: string;
   label: string;
-  kind: "color" | "enum" | "length" | "number" | "px" | string;
+  kind: "enum" | "length" | "number" | "paint" | "px" | string;
   min?: number;
   max?: number;
   step?: number;
+  solidOnly?: boolean;
   options?: PluginEnumOption[];
   length?: {
     px?: LengthUnitConfig;
@@ -79,6 +112,7 @@ export type PluginEnvironment = {
 export type PluginApi = {
   env: () => PluginEnvironment;
   motion: () => MotionFrame;
+  paint: PluginPaintApi;
   plugin: () => PluginManifest;
   settings: () => Record<string, unknown>;
 };
@@ -97,6 +131,11 @@ export type PluginModule = {
 
 export type PluginSettingDefinition = Omit<PluginSettingSchema, "key"> & {
   defaultValue: unknown;
+};
+
+export type PluginPaintSettingDefinition = Omit<PluginSettingDefinition, "defaultValue" | "kind"> & {
+  defaultValue: Paint | null;
+  kind: "paint";
 };
 
 export type PluginRegistration = {

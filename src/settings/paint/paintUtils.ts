@@ -9,12 +9,6 @@ import type {
   SolidPaint,
 } from "./types";
 
-export type RgbColor = {
-  r: number;
-  g: number;
-  b: number;
-};
-
 export const defaultSolidPaint: SolidPaint = {
   type: "solid",
   color: "#4cd964",
@@ -218,10 +212,6 @@ export function gradientBarCss(paint: Paint): string {
   return `linear-gradient(90deg, ${stops})`;
 }
 
-export function rgbToHex({ r, g, b }: RgbColor): HexColor {
-  return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
-}
-
 export function normalizeHexColor(color: unknown): HexColor | "" {
   const normalized = typeof color === "string" ? color.trim().replace(/^#?/, "#").toLowerCase() : "";
 
@@ -235,15 +225,11 @@ export function normalizeColorString(color: unknown): HexColor | "" {
     return "";
   }
 
-  return normalizeHexColor(normalized) || rgbColorStringToHex(normalized);
+  return normalizeHexColor(normalized);
 }
 
 export function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
-}
-
-export function clampByte(value: number): number {
-  return Math.min(255, Math.max(0, Math.round(value)));
 }
 
 export function clampPercent(value: number): number {
@@ -294,42 +280,4 @@ function solidToGradientStops(paint: SolidPaint): GradientStop[] {
 
 function formatPosition(position: { x: number; y: number }): string {
   return `${Math.round(position.x * 100)}% ${Math.round(position.y * 100)}%`;
-}
-
-function toHexByte(value: number): string {
-  return clampByte(value).toString(16).padStart(2, "0");
-}
-
-function rgbColorStringToHex(color: string): HexColor | "" {
-  const legacyRgbMatch = color.match(
-    /^rgba?\(\s*([.\d]+)\s*,\s*([.\d]+)\s*,\s*([.\d]+)(?:\s*,\s*([.\d]+%?))?\s*\)$/i,
-  );
-  const modernRgbMatch = color.match(
-    /^rgba?\(\s*([.\d]+)\s+([.\d]+)\s+([.\d]+)(?:\s*\/\s*([.\d]+%?))?\s*\)$/i,
-  );
-  const match = legacyRgbMatch ?? modernRgbMatch;
-
-  if (!match) {
-    return "";
-  }
-
-  const alpha = match[4] ? parseAlpha(match[4]) : 1;
-  const rgb = rgbToHex({
-    r: Number(match[1]),
-    g: Number(match[2]),
-    b: Number(match[3]),
-  });
-
-  return alpha >= 1 ? rgb : `${rgb}${toHexByte(alpha * 255)}`;
-}
-
-function parseAlpha(value: string): number {
-  const trimmed = value.trim();
-  const numeric = Number(trimmed.replace("%", ""));
-
-  if (!Number.isFinite(numeric)) {
-    return 1;
-  }
-
-  return clamp01(trimmed.endsWith("%") ? numeric / 100 : numeric);
 }

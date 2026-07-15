@@ -1,6 +1,6 @@
 import { animeRuntime } from "../../../animation";
-import { definePlugin, numberSetting, pxSetting, colorSetting as colorSettingDefinition } from "../../definePlugin";
-import { canvasColorSetting, clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
+import { definePlugin, numberSetting, paintSetting as paintSettingDefinition, pxSetting } from "../../definePlugin";
+import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
 
 function lerpAngle(current: number, target: number, factor: number) {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
@@ -24,7 +24,7 @@ export default definePlugin({
   order: 10,
   description: "Canvas ring that stretches in the raw mouse direction.",
   settings: {
-    color: colorSettingDefinition(),
+    color: paintSettingDefinition({ label: "Color" }),
     radius: pxSetting({ defaultValue: 36, label: "Radius", min: 8, max: 120, step: 1 }),
     stroke: pxSetting({ defaultValue: 8, label: "Stroke", min: 1, max: 40, step: 1 }),
     opacity: numberSetting({ defaultValue: 0.8, label: "Opacity", min: 0, max: 1, step: 0.01 }),
@@ -104,7 +104,7 @@ export default definePlugin({
         const deformation = numberSettingValue(settings, "deformation", 40) / 2;
         const smoothness = clamp01(numberSettingValue(settings, "smoothness", 0.5));
         const opacity = clamp01(numberSettingValue(settings, "opacity", 1));
-        const color = canvasColorSetting(settings, "color");
+        const paintStyle = api.paint.canvasStyle(ctx, "color");
         const sensitivityScale = Math.max(0.2, sensitivity);
         const maxDeformation = deformation;
         const response = lerp(0.24, 0.065, smoothness);
@@ -177,7 +177,7 @@ export default definePlugin({
         ctx.clearRect(0, 0, width, height);
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = paintStyle;
         ctx.lineWidth = stroke;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -225,7 +225,7 @@ export default definePlugin({
           ctx.fillStyle = "#05070a";
           ctx.fillRect(6, 6, panelWidth, panelHeight);
           ctx.globalAlpha = 0.96;
-          ctx.fillStyle = color;
+          ctx.fillStyle = paintStyle;
           lines.forEach((line, index) => {
             ctx.fillText(line, 6 + padding, 6 + padding + index * lineHeight);
           });

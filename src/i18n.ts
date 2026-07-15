@@ -172,14 +172,14 @@ export const resources = {
         title: "Settings",
       },
       start: {
-        addCustomColor: "Add custom color",
-        customColor: "Custom overlay color",
-        customHue: "Custom color hue",
-        deleteCustomColor: "Delete custom color",
+        addGlobalPaint: "Add global color",
+        deleteGlobalPaint: "Delete global color",
         description: "Quickly adjust the overlay's shared color and opacity.",
+        editGlobalPaint: "Edit global color",
         gameSettingsDescription: "Adjust these options in each game before tuning the overlay.",
         gameSettingsTitle: "In-game settings",
         globalColor: "Global overlay color",
+        globalPaintSlot: "Global color {{index}}",
         globalOpacity: "Global overlay opacity",
         tips: {
           displayMode: {
@@ -385,14 +385,14 @@ export const resources = {
         title: "设置",
       },
       start: {
-        addCustomColor: "添加自定义颜色",
-        customColor: "自定义叠加层颜色",
-        customHue: "自定义颜色色相",
-        deleteCustomColor: "删除自定义颜色",
+        addGlobalPaint: "添加全局颜色",
+        deleteGlobalPaint: "删除全局颜色",
         description: "快速调整叠加层的全局颜色与透明度。",
+        editGlobalPaint: "编辑全局颜色",
         gameSettingsDescription: "在调整叠加层之前，建议先在每个游戏中检查这些选项。",
         gameSettingsTitle: "游戏内设置",
         globalColor: "全局叠加层颜色",
+        globalPaintSlot: "全局颜色 {{index}}",
         globalOpacity: "全局叠加层透明度",
         tips: {
           displayMode: {

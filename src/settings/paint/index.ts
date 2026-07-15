@@ -1,9 +1,12 @@
+export { PaintEditorButton, type PaintEditorButtonProps } from "./PaintEditorButton";
 export { PaintInput, type PaintInputProps } from "./PaintInput";
+export { PaintSwatch } from "./PaintSwatch";
 export { usePaintPicker, type PaintPickerState } from "./usePaintPicker";
 export {
   defaultLinearGradientPaint,
   defaultSolidPaint,
   gradientBarCss,
+  normalizeColorString,
   normalizePaint,
   paintToCss,
 } from "./paintUtils";

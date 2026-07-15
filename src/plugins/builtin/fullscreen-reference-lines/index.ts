@@ -1,6 +1,6 @@
-import { colorSetting, definePlugin, enumSetting, lengthSetting, numberSetting, pxSetting } from "../../definePlugin";
+import { definePlugin, enumSetting, lengthSetting, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
 import {
-  colorSetting as colorSettingValue,
+  clamp01,
   lengthSetting as lengthSettingValue,
   numberSetting as numberSettingValue,
   stringSetting as stringSettingValue,
@@ -14,7 +14,7 @@ export default definePlugin({
   order: 20,
   description: "Four center-axis guide lines that extend to the screen edges.",
   settings: {
-    color: colorSetting(),
+    color: paintSetting({ label: "Color" }),
     opacity: numberSetting({ defaultValue: 0.4, label: "Opacity", min: 0, max: 1, step: 0.01 }),
     lineWidth: pxSetting({ defaultValue: 16, label: "Line width", min: 1, max: 40, step: 1 }),
     shape: enumSetting({
@@ -33,84 +33,72 @@ export default definePlugin({
     }),
   },
   mount(root, api) {
-    const style = document.createElement("style");
-    const container = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-    style.textContent = `
-      .ma-reference-lines {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        opacity: var(--ma-reference-opacity);
-        background-repeat: no-repeat;
-        -webkit-mask-image: radial-gradient(
-          circle at center,
-          transparent 0,
-          transparent var(--ma-reference-gap),
-          black var(--ma-reference-gap)
-        );
-        mask-image: radial-gradient(
-          circle at center,
-          transparent 0,
-          transparent var(--ma-reference-gap),
-          black var(--ma-reference-gap)
-        );
-      }
-      .ma-reference-lines[data-shape="cross"] {
-        background-image:
-          linear-gradient(
-            to right,
-            transparent calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% + (var(--ma-reference-line-width) / 2)),
-            transparent calc(50% + (var(--ma-reference-line-width) / 2))
-          ),
-          linear-gradient(
-            to bottom,
-            transparent calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% + (var(--ma-reference-line-width) / 2)),
-            transparent calc(50% + (var(--ma-reference-line-width) / 2))
-          );
-      }
-      .ma-reference-lines[data-shape="x"] {
-        background-image:
-          linear-gradient(
-            to bottom right,
-            transparent calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% + (var(--ma-reference-line-width) / 2)),
-            transparent calc(50% + (var(--ma-reference-line-width) / 2))
-          ),
-          linear-gradient(
-            to bottom left,
-            transparent calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% - (var(--ma-reference-line-width) / 2)),
-            var(--ma-reference-color) calc(50% + (var(--ma-reference-line-width) / 2)),
-            transparent calc(50% + (var(--ma-reference-line-width) / 2))
-          );
-      }
-    `;
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.pointerEvents = "none";
+    root.replaceChildren(canvas);
 
-    container.className = "ma-reference-lines";
-    root.replaceChildren(style, container);
+    const draw = () => {
+      if (!ctx) {
+        return;
+      }
 
-    const applySettings = () => {
       const settings = api.settings();
+      const rect = root.getBoundingClientRect();
+      const width = Math.max(1, rect.width || window.innerWidth);
+      const height = Math.max(1, rect.height || window.innerHeight);
+      const dpr = window.devicePixelRatio || 1;
+      const pixelWidth = Math.ceil(width * dpr);
+      const pixelHeight = Math.ceil(height * dpr);
+      const lineWidth = numberSettingValue(settings, "lineWidth", 8);
       const shape = stringSettingValue(settings, "shape", "cross") === "x" ? "x" : "cross";
+      const gap = lengthSettingValue(settings, "gap", 84);
 
-      container.dataset.shape = shape;
-      container.style.setProperty("--ma-reference-color", colorSettingValue(settings, "color"));
-      container.style.setProperty("--ma-reference-opacity", String(numberSettingValue(settings, "opacity", 0.35)));
-      container.style.setProperty("--ma-reference-line-width", `${numberSettingValue(settings, "lineWidth", 8)}px`);
-      container.style.setProperty("--ma-reference-gap", lengthSettingValue(settings, "gap", 84));
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      canvas.style.webkitMaskImage = `radial-gradient(circle at center, transparent 0, transparent ${gap}, black ${gap})`;
+      canvas.style.maskImage = canvas.style.webkitMaskImage;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.globalAlpha = clamp01(numberSettingValue(settings, "opacity", 0.35));
+      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+
+      if (shape === "x") {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(width, height);
+        ctx.moveTo(width, 0);
+        ctx.lineTo(0, height);
+      } else {
+        ctx.moveTo(width / 2, 0);
+        ctx.lineTo(width / 2, height);
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+      }
+
+      ctx.stroke();
+      ctx.restore();
     };
 
-    applySettings();
+    const resize = () => draw();
+    window.addEventListener("resize", resize);
+    draw();
 
     return {
-      updatePlugin: applySettings,
+      updatePlugin: draw,
       destroy() {
+        window.removeEventListener("resize", resize);
         root.replaceChildren();
       },
     };

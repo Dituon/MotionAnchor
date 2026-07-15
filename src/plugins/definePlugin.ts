@@ -3,21 +3,32 @@ import type {
   PluginEnumOption,
   PluginDirectoryPayload,
   PluginManifest,
+  PluginPaintSettingDefinition,
   PluginOverride,
   PluginOverridesPayload,
   PluginRegistration,
   PluginSettingDefinition,
 } from "./types";
+import type { Paint } from "../settings/paint/types";
 
 export function definePlugin(plugin: PluginRegistration) {
   return plugin;
 }
 
-export function colorSetting({ defaultValue = "" }: { defaultValue?: string } = {}): PluginSettingDefinition {
+export function paintSetting({
+  defaultValue = null,
+  label,
+  solidOnly = false,
+}: {
+  defaultValue?: Paint | null;
+  label?: string;
+  solidOnly?: boolean;
+} = {}): PluginPaintSettingDefinition {
   return {
     defaultValue,
-    kind: "color",
-    label: "Color",
+    kind: "paint",
+    label: label ?? "Paint",
+    solidOnly,
   };
 }
 
@@ -134,6 +145,7 @@ export function toPluginManifest(plugin: PluginRegistration, override?: PluginOv
       min: setting.min,
       max: setting.max,
       step: setting.step,
+      solidOnly: setting.solidOnly,
       options: setting.options,
       length: setting.length,
     })),

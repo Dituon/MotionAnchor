@@ -33,6 +33,7 @@ export type SettingsRuntime = {
   getOverlayVisible: () => Promise<boolean>;
   getShortcutSettings: () => Promise<ShortcutSettingsPayload>;
   listenOverlayVisible: (handler: (visible: boolean) => void) => Promise<Unlisten>;
+  listenOverlayAppearance: (handler: (appearance: OverlayAppearance) => void) => Promise<Unlisten>;
   listenPluginsChanged: (handler: (payload: PluginDirectoryPayload) => void) => Promise<Unlisten>;
   listenRawMouse: (handler: (payload: RawMousePayload) => void) => Promise<Unlisten>;
   listenRawMouseStatus: (handler: (payload: RawMouseStatusPayload) => void) => Promise<Unlisten>;
@@ -58,6 +59,8 @@ export const tauriSettingsRuntime: SettingsRuntime = {
   getShortcutSettings,
   listenOverlayVisible: (handler) =>
     listen<boolean>("overlay-visibility-changed", (event) => handler(event.payload)),
+  listenOverlayAppearance: (handler) =>
+    listen<OverlayAppearance>(overlayAppearanceChangedEvent, (event) => handler(event.payload)),
   listenPluginsChanged: (handler) =>
     listen<PluginOverridesPayload>("plugins-changed", (event) => handler(createPluginsPayload(event.payload))),
   listenRawMouse: (handler) =>
