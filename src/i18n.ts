@@ -70,6 +70,11 @@ export const resources = {
         description: "Expose debug mode to overlay plugins.",
         title: "Plugin environment",
       },
+      pluginKinds: {
+        component: "Component",
+        crosshair: "Crosshair",
+        layout: "Layout",
+      },
       paint: {
         alpha: "Alpha",
         angle: "Gradient angle",
@@ -282,6 +287,11 @@ export const resources = {
         speed: "速度",
         status: "状态",
         value: "值",
+      },
+      pluginKinds: {
+        component: "组件",
+        crosshair: "准星",
+        layout: "布局",
       },
       paint: {
         alpha: "透明度",

@@ -1,6 +1,7 @@
 import { animeRuntime } from "../../../animation";
 import { definePlugin, numberSetting, paintSetting as paintSettingDefinition, pxSetting } from "../../definePlugin";
 import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
+import { PluginKind } from "../../types";
 
 function lerpAngle(current: number, target: number, factor: number) {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
@@ -19,7 +20,7 @@ function smoothstep(edge0: number, edge1: number, value: number) {
 export default definePlugin({
   id: "builtin.directional-pull-ring",
   name: "Directional Pull Ring",
-  kind: "overlay",
+  kind: PluginKind.Crosshair,
   enabledByDefault: true,
   order: 10,
   description: "Canvas ring that stretches in the raw mouse direction.",

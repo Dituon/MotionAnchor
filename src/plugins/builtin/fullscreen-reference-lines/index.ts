@@ -5,11 +5,12 @@ import {
   numberSetting as numberSettingValue,
   stringSetting as stringSettingValue,
 } from "../../runtimeSettings";
+import { PluginKind } from "../../types";
 
 export default definePlugin({
   id: "builtin.fullscreen-reference-lines",
   name: "Fullscreen Reference Lines",
-  kind: "guide",
+  kind: PluginKind.Layout,
   enabledByDefault: true,
   order: 20,
   description: "Four center-axis guide lines that extend to the screen edges.",

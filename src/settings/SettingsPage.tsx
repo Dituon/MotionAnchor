@@ -294,6 +294,7 @@ function PluginAccordionItem({
   const { t } = useTranslation();
   const pluginName = t(`plugins.${plugin.id}.name`, { defaultValue: plugin.name });
   const pluginDescription = t(`plugins.${plugin.id}.description`, { defaultValue: plugin.description });
+  const pluginKind = t(`pluginKinds.${plugin.kind}`, { defaultValue: plugin.kind });
 
   return (
     <Accordion.Item id={plugin.id}>
@@ -303,7 +304,7 @@ function PluginAccordionItem({
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{pluginName}</span>
               <span className="block truncate text-xs text-muted">
-                {plugin.kind} / {plugin.id}
+                {pluginKind} / {plugin.id}
               </span>
             </span>
             <Accordion.Indicator />

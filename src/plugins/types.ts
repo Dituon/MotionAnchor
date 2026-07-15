@@ -64,10 +64,18 @@ export type PluginSettingSchema = {
   };
 };
 
+export const PluginKind = {
+  Component: "component",
+  Crosshair: "crosshair",
+  Layout: "layout",
+} as const;
+
+export type PluginKind = (typeof PluginKind)[keyof typeof PluginKind];
+
 export type PluginManifest = {
   id: string;
   name: string;
-  kind: string;
+  kind: PluginKind;
   enabled: boolean;
   order: number;
   description: string;
@@ -141,7 +149,7 @@ export type PluginPaintSettingDefinition = Omit<PluginSettingDefinition, "defaul
 export type PluginRegistration = {
   id: string;
   name: string;
-  kind: string;
+  kind: PluginKind;
   enabledByDefault: boolean;
   order: number;
   description: string;

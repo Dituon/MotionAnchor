@@ -1,10 +1,11 @@
 import { definePlugin, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
 import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
+import { PluginKind } from "../../types";
 
 export default definePlugin({
   id: "builtin.fullscreen-border",
   name: "Fullscreen Border",
-  kind: "guide",
+  kind: PluginKind.Layout,
   enabledByDefault: true,
   order: 40,
   description: "Canvas-rendered full-screen border with adjustable thickness.",

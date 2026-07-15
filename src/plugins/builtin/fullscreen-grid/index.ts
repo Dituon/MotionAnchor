@@ -5,11 +5,12 @@ import {
   lengthSetting as lengthSettingValue,
   numberSetting as numberSettingValue,
 } from "../../runtimeSettings";
+import { PluginKind } from "../../types";
 
 export default definePlugin({
   id: "builtin.fullscreen-grid",
   name: "Fullscreen Grid",
-  kind: "guide",
+  kind: PluginKind.Layout,
   enabledByDefault: true,
   order: 30,
   description: "A screen-wide grid aligned to the center of the display.",

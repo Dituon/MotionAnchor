@@ -1,10 +1,11 @@
 import { definePlugin, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
 import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
+import { PluginKind } from "../../types";
 
 export default definePlugin({
   id: "builtin.static-ring",
   name: "Static Ring",
-  kind: "overlay",
+  kind: PluginKind.Crosshair,
   enabledByDefault: false,
   order: 15,
   description: "Canvas-rendered static circular overlay.",
