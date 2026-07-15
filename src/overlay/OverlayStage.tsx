@@ -19,7 +19,6 @@ import { getOverlayVisible, loadPlugins, setPluginEnabled, setRawMouseEnabled } 
 import {
   applyOverlayAppearance,
   defaultOverlayAppearance,
-  getActiveOverlayPaint,
   getOverlayAppearance,
   overlayAppearanceChangedEvent,
   type OverlayAppearance,
@@ -127,7 +126,7 @@ export function OverlayStage() {
         env: () => environmentRef.current,
         motion: () => motionRef.current,
         paint: createPluginPaintApi({
-          getGlobalPaint: () => getActiveOverlayPaint(overlayAppearanceRef.current),
+          appearance: overlayAppearanceRef,
           getSettings: () => currentPlugin.settings,
           root,
           viewportElement: stage,
@@ -174,6 +173,34 @@ export function OverlayStage() {
       if (!cancelled) {
         setPlugins(payload.plugins);
       }
+    };
+
+    const applyAppearance = (appearance: OverlayAppearance) => {
+      overlayAppearanceRef.current = appearance;
+      applyOverlayAppearance(appearance);
+      for (const mountedPlugin of mountedPluginsRef.current.values()) {
+        mountedPlugin.refresh();
+      }
+      requestFrame();
+    };
+
+    const boot = async () => {
+      let appearance = defaultOverlayAppearance;
+
+      try {
+        appearance = await getOverlayAppearance();
+      } catch (error) {
+        console.error(error);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      applyAppearance(
+        overlayAppearanceRef.current === defaultOverlayAppearance ? appearance : overlayAppearanceRef.current,
+      );
+      await refreshPlugins();
     };
 
     const requestFrame = () => {
@@ -232,16 +259,7 @@ export function OverlayStage() {
     };
 
     requestFrameRef.current = requestFrame;
-    getOverlayAppearance()
-      .then((appearance) => {
-        if (!cancelled) {
-          overlayAppearanceRef.current = appearance;
-          applyOverlayAppearance(appearance);
-          requestFrame();
-        }
-      })
-      .catch(console.error);
-    refreshPlugins().catch(console.error);
+    boot().catch(console.error);
     getOverlayVisible()
       .then((visible) => {
         overlayVisibleRef.current = visible;
@@ -293,12 +311,7 @@ export function OverlayStage() {
     });
 
     listen<OverlayAppearance>(overlayAppearanceChangedEvent, (event) => {
-      overlayAppearanceRef.current = event.payload;
-      applyOverlayAppearance(event.payload);
-      for (const mountedPlugin of mountedPluginsRef.current.values()) {
-        mountedPlugin.refresh();
-      }
-      requestFrame();
+      applyAppearance(event.payload);
     }).then((unlisten) => {
       unlistenAppearance = unlisten;
     });

@@ -4,7 +4,6 @@ import { animate, set, spring } from "animejs";
 import {
   applyOverlayAppearance,
   defaultOverlayAppearance,
-  getActiveOverlayPaint,
   type OverlayAppearance,
 } from "@motion-anchor/app/overlay/appearance";
 import { pluginModules } from "@motion-anchor/app/plugins/registry";
@@ -97,20 +96,42 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     let unlistenPlugins: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
 
-    runtime.getOverlayAppearance().then((appearance) => {
-      if (!cancelled) {
-        overlayAppearanceRef.current = appearance;
-        applyOverlayAppearance(appearance);
+    const applyAppearance = (appearance: OverlayAppearance) => {
+      overlayAppearanceRef.current = appearance;
+      applyOverlayAppearance(appearance);
+      for (const mountedPlugin of mountedPluginsRef.current.values()) {
+        mountedPlugin.refresh();
       }
-    }).catch(console.error);
+      requestFrameRef.current();
+    };
+
+    const boot = async () => {
+      let appearance = defaultOverlayAppearance;
+
+      try {
+        appearance = await runtime.getOverlayAppearance();
+      } catch (error) {
+        console.error(error);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      applyAppearance(
+        overlayAppearanceRef.current === defaultOverlayAppearance ? appearance : overlayAppearanceRef.current,
+      );
+
+      const payload = await runtime.loadPlugins();
+      if (!cancelled) {
+        setPlugins(payload.plugins);
+      }
+    };
+
+    boot().catch(console.error);
     runtime.getPluginEnvironment().then((environment) => {
       if (!cancelled) {
         environmentRef.current = environment;
-      }
-    }).catch(console.error);
-    runtime.loadPlugins().then((payload) => {
-      if (!cancelled) {
-        setPlugins(payload.plugins);
       }
     }).catch(console.error);
     runtime.getOverlayVisible().then((visible) => {
@@ -129,12 +150,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
       unlistenOverlay = unlisten;
     }).catch(console.error);
     runtime.listenOverlayAppearance((appearance) => {
-      overlayAppearanceRef.current = appearance;
-      applyOverlayAppearance(appearance);
-      for (const mountedPlugin of mountedPluginsRef.current.values()) {
-        mountedPlugin.refresh();
-      }
-      requestFrameRef.current();
+      applyAppearance(appearance);
     }).then((unlisten) => {
       unlistenAppearance = unlisten;
     }).catch(console.error);
@@ -273,7 +289,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
           env: () => environmentRef.current,
           motion: () => motionRef.current,
           paint: createPluginPaintApi({
-            getGlobalPaint: () => getActiveOverlayPaint(overlayAppearanceRef.current),
+            appearance: overlayAppearanceRef,
             getSettings: () => currentPlugin.settings,
             root,
             viewportElement: stage,

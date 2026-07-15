@@ -1,5 +1,6 @@
 import { defaultSolidPaint, normalizePaint, paintToCss } from "../settings/paint/paintUtils";
 import type { GradientStop, Paint } from "../settings/paint/types";
+import { getActiveOverlayPaint, type OverlayAppearance } from "../overlay/appearance";
 import type { PaintCoordinateSpace, PaintRect, PluginCanvasPaintOptions, PluginPaintApi } from "./types";
 
 export function numberSetting(settings: Record<string, unknown>, key: string, fallback: number) {
@@ -60,18 +61,18 @@ export function paintSetting(
 }
 
 export function createPluginPaintApi({
+  appearance,
   getSettings,
   root,
   viewportElement,
-  getGlobalPaint,
 }: {
-  getGlobalPaint?: () => Paint;
+  appearance: { current: OverlayAppearance };
   getSettings: () => Record<string, unknown>;
   root: HTMLElement;
   viewportElement?: HTMLElement | null;
 }): PluginPaintApi {
   const viewport = () => viewportRect(viewportElement ?? root.parentElement ?? root);
-  const fallbackPaint = (fallback?: Paint) => fallback ?? getGlobalPaint?.() ?? defaultSolidPaint;
+  const fallbackPaint = (fallback?: Paint) => fallback ?? getActiveOverlayPaint(appearance.current) ?? defaultSolidPaint;
   const setting = (key: string, fallback?: Paint) => paintSetting(getSettings(), key, fallbackPaint(fallback));
 
   return {
