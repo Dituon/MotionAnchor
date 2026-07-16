@@ -8,6 +8,7 @@ import type {
   PluginOverridesPayload,
   PluginRegistration,
   PluginSettingDefinition,
+  PluginSettingVisibilityCondition,
 } from "./types";
 import type { Paint } from "../settings/paint/types";
 
@@ -19,16 +20,19 @@ export function paintSetting({
   defaultValue = null,
   label,
   solidOnly = false,
+  visibleWhen,
 }: {
   defaultValue?: Paint | null;
   label?: string;
   solidOnly?: boolean;
+  visibleWhen?: PluginSettingVisibilityCondition;
 } = {}): PluginPaintSettingDefinition {
   return {
     defaultValue,
     kind: "paint",
     label: label ?? "Paint",
     solidOnly,
+    visibleWhen,
   };
 }
 
@@ -38,12 +42,14 @@ export function numberSetting({
   max,
   min,
   step,
+  visibleWhen,
 }: {
   defaultValue: number;
   label?: string;
   max: number;
   min: number;
   step: number;
+  visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
@@ -52,6 +58,7 @@ export function numberSetting({
     max,
     min,
     step,
+    visibleWhen,
   };
 }
 
@@ -61,12 +68,14 @@ export function pxSetting({
   max,
   min,
   step,
+  visibleWhen,
 }: {
   defaultValue: number;
   label?: string;
   max: number;
   min: number;
   step: number;
+  visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
@@ -75,6 +84,7 @@ export function pxSetting({
     max,
     min,
     step,
+    visibleWhen,
   };
 }
 
@@ -82,16 +92,19 @@ export function enumSetting({
   defaultValue,
   label,
   options,
+  visibleWhen,
 }: {
   defaultValue: string;
   label?: string;
   options: PluginEnumOption[];
+  visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
     kind: "enum",
     label: label ?? "Option",
     options,
+    visibleWhen,
   };
 }
 
@@ -100,16 +113,19 @@ export function lengthSetting({
   label,
   percent,
   px,
+  visibleWhen,
 }: {
   defaultValue: LengthValue;
   label?: string;
   percent: { defaultValue: number; max: number; min: number; step: number };
   px: { max: number; min: number; step: number };
+  visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
     kind: "length",
     label: label ?? "Length",
+    visibleWhen,
     length: {
       percent,
       px: {
@@ -147,6 +163,7 @@ export function toPluginManifest(plugin: PluginRegistration, override?: PluginOv
       step: setting.step,
       solidOnly: setting.solidOnly,
       options: setting.options,
+      visibleWhen: setting.visibleWhen,
       length: setting.length,
     })),
   };

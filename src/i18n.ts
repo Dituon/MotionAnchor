@@ -124,6 +124,8 @@ export const resources = {
         centerHiddenRadius: "Center hidden radius",
         deformation: "Deformation",
         gap: "Center gap",
+        headLength: "Head height",
+        headStyle: "Head style",
         lineWidth: "Line width",
         opacity: "Opacity",
         shape: "Shape",
@@ -135,6 +137,11 @@ export const resources = {
         width: "Width",
         followGlobal: "Follow global",
         options: {
+          headStyle: {
+            arrow: "Arrow",
+            none: "None",
+            round: "Round",
+          },
           shape: {
             cross: "Cross",
             x: "X",
@@ -155,7 +162,7 @@ export const resources = {
           name: "Fullscreen Grid",
         },
         "builtin.fullscreen-reference-lines": {
-          description: "Horizontal and vertical reference lines through the screen center.",
+          description: "Horizontal and vertical reference lines through the screen center with configurable heads.",
           name: "Fullscreen Reference Lines",
         },
         "builtin.static-ring": {
@@ -342,6 +349,8 @@ export const resources = {
         centerHiddenRadius: "中心隐藏半径",
         deformation: "形变量",
         gap: "中心间距",
+        headLength: "头部深度",
+        headStyle: "头部样式",
         lineWidth: "线宽",
         opacity: "不透明度",
         shape: "形状",
@@ -353,6 +362,11 @@ export const resources = {
         width: "宽度",
         followGlobal: "跟随全局",
         options: {
+          headStyle: {
+            arrow: "锥型",
+            none: "平直",
+            round: "圆角",
+          },
           shape: {
             cross: "十字形",
             x: "X 形",
@@ -373,7 +387,7 @@ export const resources = {
           name: "全屏网格",
         },
         "builtin.fullscreen-reference-lines": {
-          description: "穿过屏幕中心的水平和垂直参考线。",
+          description: "穿过屏幕中心的水平和垂直参考线，可配置头部样式。",
           name: "全屏参考线",
         },
         "builtin.static-ring": {

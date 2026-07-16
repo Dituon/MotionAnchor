@@ -306,6 +306,10 @@ function NumberInputGroup({
 }
 
 function normalizeLengthValue(value: unknown, setting: PluginManifest["schema"][number]): LengthValue {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { value, unit: "px" };
+  }
+
   if (isRecord(value)) {
     const numericValue = value.value;
     const unit = value.unit;

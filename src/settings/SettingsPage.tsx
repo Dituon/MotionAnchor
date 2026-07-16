@@ -321,20 +321,35 @@ function PluginAccordionItem({
       <Accordion.Panel>
         <Accordion.Body className="grid gap-3 px-2 pb-2 pt-3">
           <Typography.Paragraph>{pluginDescription}</Typography.Paragraph>
-          {plugin.schema.map((setting) => (
-            <div className="grid gap-2" key={setting.key}>
-              <Separator />
-              <Label>{t(`pluginSettings.${setting.key}`, { defaultValue: setting.label })}</Label>
-              <PluginSettingEditor
-                inheritedPaint={globalPaint}
-                plugin={plugin}
-                setting={setting}
-                onChange={(value) => onUpdateSetting(plugin, setting.key, value)}
-              />
-            </div>
-          ))}
+          {plugin.schema
+            .filter((setting) => isSettingVisible(plugin, setting))
+            .map((setting) => (
+              <div className="grid gap-2" key={setting.key}>
+                <Separator />
+                <Label>{t(`pluginSettings.${setting.key}`, { defaultValue: setting.label })}</Label>
+                <PluginSettingEditor
+                  inheritedPaint={globalPaint}
+                  plugin={plugin}
+                  setting={setting}
+                  onChange={(value) => onUpdateSetting(plugin, setting.key, value)}
+                />
+              </div>
+            ))}
         </Accordion.Body>
       </Accordion.Panel>
     </Accordion.Item>
   );
+}
+
+function isSettingVisible(plugin: PluginManifest, setting: PluginManifest["schema"][number]) {
+  const condition = setting.visibleWhen;
+
+  if (!condition) {
+    return true;
+  }
+
+  const value = plugin.settings[condition.key];
+  const expectedValues = Array.isArray(condition.equals) ? condition.equals : [condition.equals];
+
+  return expectedValues.some((expectedValue) => Object.is(expectedValue, value));
 }

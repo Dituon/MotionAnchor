@@ -49,6 +49,11 @@ export type PluginEnumOption = {
   value: string;
 };
 
+export type PluginSettingVisibilityCondition = {
+  key: string;
+  equals: unknown | unknown[];
+};
+
 export type PluginSettingSchema = {
   key: string;
   label: string;
@@ -58,6 +63,7 @@ export type PluginSettingSchema = {
   step?: number;
   solidOnly?: boolean;
   options?: PluginEnumOption[];
+  visibleWhen?: PluginSettingVisibilityCondition;
   length?: {
     px?: LengthUnitConfig;
     percent?: LengthUnitConfig;

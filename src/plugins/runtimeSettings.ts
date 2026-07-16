@@ -36,6 +36,10 @@ export function lengthPixelSetting(
 ) {
   const value = settings[key];
 
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
   if (typeof value === "object" && value !== null && "value" in value && "unit" in value) {
     const candidate = value as { value?: unknown; unit?: unknown };
 
