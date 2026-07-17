@@ -1,7 +1,6 @@
 import { definePlugin, lengthSetting, numberSetting, paintSetting, pxSetting } from "../../definePlugin";
 import {
   clamp01,
-  lengthPixelSetting,
   lengthSetting as lengthSettingValue,
   numberSetting as numberSettingValue,
 } from "../../runtimeSettings";
@@ -38,81 +37,107 @@ export default definePlugin({
     }),
   },
   mount(root, api) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const style = document.createElement("style");
+    const grid = document.createElement("div");
+    const verticalLines = document.createElement("div");
+    const horizontalLines = document.createElement("div");
 
-    canvas.style.position = "absolute";
-    canvas.style.inset = "0";
-    canvas.style.pointerEvents = "none";
-    root.replaceChildren(canvas);
-
-    const draw = () => {
-      if (!ctx) {
-        return;
+    style.textContent = `
+      .ma-fullscreen-grid {
+        position: absolute;
+        inset: 0;
+        opacity: var(--ma-grid-opacity);
+        pointer-events: none;
+        -webkit-mask-image: radial-gradient(
+          circle at center,
+          transparent 0,
+          transparent var(--ma-grid-center-hidden-radius),
+          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
+        );
+        mask-image: radial-gradient(
+          circle at center,
+          transparent 0,
+          transparent var(--ma-grid-center-hidden-radius),
+          black calc(var(--ma-grid-center-hidden-radius) + var(--ma-grid-center-fade-size))
+        );
       }
+      .ma-fullscreen-grid__lines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        -webkit-mask-repeat: repeat;
+        mask-repeat: repeat;
+        -webkit-mask-size: var(--ma-grid-spacing) var(--ma-grid-spacing);
+        mask-size: var(--ma-grid-spacing) var(--ma-grid-spacing);
+      }
+      .ma-fullscreen-grid__lines--vertical {
+        -webkit-mask-image: linear-gradient(
+          to right,
+          black 0,
+          black var(--ma-grid-line-width),
+          transparent var(--ma-grid-line-width)
+        );
+        mask-image: linear-gradient(
+          to right,
+          black 0,
+          black var(--ma-grid-line-width),
+          transparent var(--ma-grid-line-width)
+        );
+        -webkit-mask-position: calc(50% - (var(--ma-grid-line-width) / 2)) 0;
+        mask-position: calc(50% - (var(--ma-grid-line-width) / 2)) 0;
+      }
+      .ma-fullscreen-grid__lines--horizontal {
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          black 0,
+          black var(--ma-grid-line-width),
+          transparent var(--ma-grid-line-width)
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          black 0,
+          black var(--ma-grid-line-width),
+          transparent var(--ma-grid-line-width)
+        );
+        -webkit-mask-position: 0 calc(50% - (var(--ma-grid-line-width) / 2));
+        mask-position: 0 calc(50% - (var(--ma-grid-line-width) / 2));
+      }
+    `;
 
+    grid.className = "ma-fullscreen-grid";
+    verticalLines.className = "ma-fullscreen-grid__lines ma-fullscreen-grid__lines--vertical";
+    horizontalLines.className = "ma-fullscreen-grid__lines ma-fullscreen-grid__lines--horizontal";
+    grid.replaceChildren(verticalLines, horizontalLines);
+    root.replaceChildren(style, grid);
+
+    const applySettings = () => {
       const settings = api.settings();
-      const rect = root.getBoundingClientRect();
-      const width = Math.max(1, rect.width || window.innerWidth);
-      const height = Math.max(1, rect.height || window.innerHeight);
-      const dpr = window.devicePixelRatio || 1;
-      const pixelWidth = Math.ceil(width * dpr);
-      const pixelHeight = Math.ceil(height * dpr);
-      const percentBase = Math.min(width, height);
-      const spacing = Math.max(1, lengthPixelSetting(settings, "spacing", 80, percentBase));
-      const lineWidth = numberSettingValue(settings, "lineWidth", 1);
       const centerHiddenRadius = lengthSettingValue(settings, "centerHiddenRadius", 0);
       const centerFadeSize =
         "centerFadeSize" in settings
           ? lengthSettingValue(settings, "centerFadeSize", 0)
           : lengthSettingValue(settings, "centerFadeRadius", 0);
 
-      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-        canvas.width = pixelWidth;
-        canvas.height = pixelHeight;
-      }
-
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      canvas.style.webkitMaskImage = `radial-gradient(circle at center, transparent 0, transparent ${centerHiddenRadius}, black calc(${centerHiddenRadius} + ${centerFadeSize}))`;
-      canvas.style.maskImage = canvas.style.webkitMaskImage;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      ctx.save();
-      ctx.globalAlpha = clamp01(numberSettingValue(settings, "opacity", 0.16));
-      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-
-      for (let x = width / 2; x <= width; x += spacing) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-      for (let x = width / 2 - spacing; x >= 0; x -= spacing) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-      for (let y = height / 2; y <= height; y += spacing) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
-      for (let y = height / 2 - spacing; y >= 0; y -= spacing) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
-
-      ctx.stroke();
-      ctx.restore();
+      grid.style.setProperty("--ma-grid-opacity", String(clamp01(numberSettingValue(settings, "opacity", 0.16))));
+      grid.style.setProperty("--ma-grid-spacing", lengthSettingValue(settings, "spacing", 80));
+      grid.style.setProperty("--ma-grid-line-width", `${numberSettingValue(settings, "lineWidth", 1)}px`);
+      grid.style.setProperty("--ma-grid-center-hidden-radius", centerHiddenRadius);
+      grid.style.setProperty("--ma-grid-center-fade-size", centerFadeSize);
+      api.paint.applyBackground(verticalLines, "color");
+      api.paint.applyBackground(horizontalLines, "color");
     };
 
-    const resize = () => draw();
+    const resize = () => applySettings();
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+
+    resizeObserver?.observe(root);
     window.addEventListener("resize", resize);
-    draw();
+    applySettings();
 
     return {
-      updatePlugin: draw,
+      updatePlugin: applySettings,
       destroy() {
+        resizeObserver?.disconnect();
         window.removeEventListener("resize", resize);
         root.replaceChildren();
       },

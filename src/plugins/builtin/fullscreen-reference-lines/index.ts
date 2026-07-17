@@ -141,12 +141,16 @@ export default definePlugin({
     };
 
     const resize = () => applySettings();
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+
+    resizeObserver?.observe(root);
     window.addEventListener("resize", resize);
     applySettings();
 
     return {
       updatePlugin: applySettings,
       destroy() {
+        resizeObserver?.disconnect();
         window.removeEventListener("resize", resize);
         root.replaceChildren();
       },

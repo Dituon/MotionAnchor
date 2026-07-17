@@ -8,7 +8,7 @@ export default definePlugin({
   kind: PluginKind.Crosshair,
   enabledByDefault: false,
   order: 15,
-  description: "Canvas-rendered static circular overlay.",
+  description: "DOM-rendered static circular overlay.",
   settings: {
     color: paintSetting({ label: "Color" }),
     radius: pxSetting({ defaultValue: 36, label: "Radius", min: 4, max: 160, step: 1 }),
@@ -16,56 +16,59 @@ export default definePlugin({
     opacity: numberSetting({ defaultValue: 0.8, label: "Opacity", min: 0, max: 1, step: 0.01 }),
   },
   mount(root, api) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const style = document.createElement("style");
+    const ring = document.createElement("div");
 
-    canvas.style.position = "absolute";
-    canvas.style.left = "50%";
-    canvas.style.top = "50%";
-    canvas.style.transform = "translate(-50%, -50%)";
-    canvas.style.pointerEvents = "none";
-    root.replaceChildren(canvas);
-
-    const draw = () => {
-      if (!ctx) {
-        return;
+    style.textContent = `
+      .ma-static-ring {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: calc(var(--ma-static-ring-radius) * 2);
+        height: calc(var(--ma-static-ring-radius) * 2);
+        border-radius: 50%;
+        opacity: var(--ma-static-ring-opacity);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        -webkit-mask-image: radial-gradient(
+          circle closest-side,
+          transparent calc(100% - var(--ma-static-ring-stroke)),
+          black calc(100% - var(--ma-static-ring-stroke))
+        );
+        mask-image: radial-gradient(
+          circle closest-side,
+          transparent calc(100% - var(--ma-static-ring-stroke)),
+          black calc(100% - var(--ma-static-ring-stroke))
+        );
       }
+    `;
 
+    ring.className = "ma-static-ring";
+    root.replaceChildren(style, ring);
+
+    const applySettings = () => {
       const settings = api.settings();
       const radius = numberSettingValue(settings, "radius", 36);
       const stroke = numberSettingValue(settings, "stroke", 8);
       const opacity = clamp01(numberSettingValue(settings, "opacity", 1));
-      const dpr = window.devicePixelRatio || 1;
-      const cssSize = Math.ceil((radius + stroke + 4) * 2);
-      const pixelSize = Math.max(1, Math.ceil(cssSize * dpr));
 
-      if (canvas.width !== pixelSize || canvas.height !== pixelSize) {
-        canvas.width = pixelSize;
-        canvas.height = pixelSize;
-      }
-
-      canvas.style.width = `${cssSize}px`;
-      canvas.style.height = `${cssSize}px`;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, cssSize, cssSize);
-      ctx.save();
-      ctx.globalAlpha = opacity;
-      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
-      ctx.lineWidth = stroke;
-      ctx.beginPath();
-      ctx.arc(cssSize / 2, cssSize / 2, radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+      ring.style.setProperty("--ma-static-ring-radius", `${radius}px`);
+      ring.style.setProperty("--ma-static-ring-stroke", `${stroke}px`);
+      ring.style.setProperty("--ma-static-ring-opacity", String(opacity));
+      api.paint.applyBackground(ring, "color");
     };
 
-    const resize = () => draw();
+    const resize = () => applySettings();
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+
+    resizeObserver?.observe(root);
     window.addEventListener("resize", resize);
-    draw();
+    applySettings();
 
     return {
-      updatePlugin: draw,
+      updatePlugin: applySettings,
       destroy() {
+        resizeObserver?.disconnect();
         window.removeEventListener("resize", resize);
         root.replaceChildren();
       },

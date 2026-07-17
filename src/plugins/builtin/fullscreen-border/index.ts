@@ -8,60 +8,83 @@ export default definePlugin({
   kind: PluginKind.Layout,
   enabledByDefault: true,
   order: 40,
-  description: "Canvas-rendered full-screen border with adjustable thickness.",
+  description: "DOM-rendered full-screen border with adjustable thickness.",
   settings: {
     color: paintSetting({ label: "Color" }),
     width: pxSetting({ defaultValue: 16, label: "Width", min: 1, max: 120, step: 1 }),
     opacity: numberSetting({ defaultValue: 0.6, label: "Opacity", min: 0, max: 1, step: 0.01 }),
   },
   mount(root, api) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const style = document.createElement("style");
+    const border = document.createElement("div");
+    const edges = ["top", "right", "bottom", "left"].map((side) => {
+      const edge = document.createElement("div");
 
-    canvas.style.position = "absolute";
-    canvas.style.inset = "0";
-    canvas.style.pointerEvents = "none";
-    root.replaceChildren(canvas);
+      edge.className = `ma-fullscreen-border__edge ma-fullscreen-border__edge--${side}`;
+      return edge;
+    });
 
-    const draw = () => {
-      if (!ctx) {
-        return;
+    style.textContent = `
+      .ma-fullscreen-border {
+        position: absolute;
+        inset: 0;
+        opacity: var(--ma-border-opacity);
+        pointer-events: none;
       }
+      .ma-fullscreen-border__edge {
+        position: absolute;
+        pointer-events: none;
+      }
+      .ma-fullscreen-border__edge--top,
+      .ma-fullscreen-border__edge--bottom {
+        height: var(--ma-border-width);
+        left: 0;
+        width: 100%;
+      }
+      .ma-fullscreen-border__edge--left,
+      .ma-fullscreen-border__edge--right {
+        height: 100%;
+        top: 0;
+        width: var(--ma-border-width);
+      }
+      .ma-fullscreen-border__edge--top {
+        top: 0;
+      }
+      .ma-fullscreen-border__edge--right {
+        right: 0;
+      }
+      .ma-fullscreen-border__edge--bottom {
+        bottom: 0;
+      }
+      .ma-fullscreen-border__edge--left {
+        left: 0;
+      }
+    `;
 
+    border.className = "ma-fullscreen-border";
+    border.replaceChildren(...edges);
+    root.replaceChildren(style, border);
+
+    const applySettings = () => {
       const settings = api.settings();
-      const rect = root.getBoundingClientRect();
-      const width = Math.max(1, rect.width || window.innerWidth);
-      const height = Math.max(1, rect.height || window.innerHeight);
-      const dpr = window.devicePixelRatio || 1;
-      const pixelWidth = Math.ceil(width * dpr);
-      const pixelHeight = Math.ceil(height * dpr);
       const lineWidth = numberSettingValue(settings, "width", 16);
 
-      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-        canvas.width = pixelWidth;
-        canvas.height = pixelHeight;
-      }
-
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      ctx.save();
-      ctx.globalAlpha = clamp01(numberSettingValue(settings, "opacity", 1));
-      ctx.strokeStyle = api.paint.canvasStyle(ctx, "color");
-      ctx.lineWidth = lineWidth;
-      ctx.strokeRect(lineWidth / 2, lineWidth / 2, Math.max(0, width - lineWidth), Math.max(0, height - lineWidth));
-      ctx.restore();
+      border.style.setProperty("--ma-border-width", `${lineWidth}px`);
+      border.style.setProperty("--ma-border-opacity", String(clamp01(numberSettingValue(settings, "opacity", 1))));
+      edges.forEach((edge) => api.paint.applyBackground(edge, "color"));
     };
 
-    const resize = () => draw();
+    const resize = () => applySettings();
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+
+    resizeObserver?.observe(root);
     window.addEventListener("resize", resize);
-    draw();
+    applySettings();
 
     return {
-      updatePlugin: draw,
+      updatePlugin: applySettings,
       destroy() {
+        resizeObserver?.disconnect();
         window.removeEventListener("resize", resize);
         root.replaceChildren();
       },
