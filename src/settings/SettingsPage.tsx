@@ -9,6 +9,7 @@ import {
   createGlobalPaint,
   defaultOverlayAppearance,
   getActiveOverlayPaint,
+  getNextGlobalPaintId,
   applyOverlayAppearance,
   type OverlayAppearance,
 } from "../overlay/appearance";
@@ -135,7 +136,8 @@ export function SettingsPage({
   const selectGlobalPaint = (paintId: string) => updateGlobalAppearance({ activePaintId: paintId });
   const addGlobalPaint = () =>
     updateGlobalAppearance((currentAppearance) => {
-      const paint = createGlobalPaint(getActiveOverlayPaint(currentAppearance), String(currentAppearance.paints.length + 1));
+      const id = getNextGlobalPaintId(currentAppearance.paints);
+      const paint = createGlobalPaint(id, getActiveOverlayPaint(currentAppearance));
 
       return {
         ...currentAppearance,

@@ -130,54 +130,54 @@ function GlobalPaintPalette({
   return (
     <div className="grid gap-2">
       <Label>{t("start.globalColor")}</Label>
-      <div className="flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-          {paints.map((paint, index) => {
-            const isSelected = paint.id === activePaintId;
-            const label = t("start.globalPaintSlot", { index: index + 1 });
+      <div className="flex min-w-0 flex-wrap gap-2">
+        {paints.map((paint, index) => {
+          const isSelected = paint.id === activePaintId;
+          const label = t("start.globalPaintSlot", { index: index + 1 });
 
-            return (
-              <Button
-                key={paint.id}
-                aria-label={label}
-                className={`h-11 w-11 min-w-0 rounded-full p-0 ${
-                  isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
-                }`}
-                variant={isSelected ? "secondary" : "ghost"}
-                onPress={() => onSelect(paint.id)}
-              >
-                <PaintSwatch ariaLabel={label} className="h-9 w-9" paint={paint.paint} />
-              </Button>
-            );
-          })}
+          return (
+            <Button
+              key={paint.id}
+              aria-label={label}
+              className={`h-11 w-11 min-w-0 rounded-full p-0 ${
+                isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
+              }`}
+              variant={isSelected ? "secondary" : "ghost"}
+              onPress={() => onSelect(paint.id)}
+            >
+              <PaintSwatch ariaLabel={label} className="h-9 w-9" paint={paint.paint} />
+            </Button>
+          );
+        })}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            isIconOnly
+            aria-label={t("start.addGlobalPaint")}
+            className={roundIconButtonClass}
+            size="sm"
+            variant="secondary"
+            onPress={onAdd}
+          >
+            <Plus aria-hidden="true" />
+          </Button>
+          <PaintEditorButton
+            className={roundIconButtonClass}
+            label={t("start.editGlobalPaint")}
+            value={activePaint}
+            onChange={onPaintChange}
+          />
+          <Button
+            isIconOnly
+            aria-label={t("start.deleteGlobalPaint")}
+            className={roundIconButtonClass}
+            isDisabled={!activeGlobalPaint || paints.length <= 1}
+            size="sm"
+            variant="tertiary"
+            onPress={() => activeGlobalPaint && onDelete(activeGlobalPaint.id)}
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
         </div>
-        <Button
-          isIconOnly
-          aria-label={t("start.addGlobalPaint")}
-          className={roundIconButtonClass}
-          size="sm"
-          variant="secondary"
-          onPress={onAdd}
-        >
-          <Plus aria-hidden="true" />
-        </Button>
-        <PaintEditorButton
-          className={roundIconButtonClass}
-          label={t("start.editGlobalPaint")}
-          value={activePaint}
-          onChange={onPaintChange}
-        />
-        <Button
-          isIconOnly
-          aria-label={t("start.deleteGlobalPaint")}
-          className={roundIconButtonClass}
-          isDisabled={!activeGlobalPaint || paints.length <= 1}
-          size="sm"
-          variant="tertiary"
-          onPress={() => activeGlobalPaint && onDelete(activeGlobalPaint.id)}
-        >
-          <Trash2 aria-hidden="true" />
-        </Button>
       </div>
     </div>
   );

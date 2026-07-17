@@ -1,10 +1,10 @@
 import { readStoredJson, writeStoredValue } from "../preferences/storage";
 import { defaultSolidPaint, normalizePaint, paintToCss } from "../settings/paint/paintUtils";
 import type { Paint } from "../settings/paint/types";
+import { defaultGlobalPaints } from "./globalPaintPresets";
 
 export type GlobalPaint = {
   id: string;
-  name: string;
   paint: Paint;
 };
 
@@ -15,16 +15,12 @@ export type OverlayAppearance = {
 };
 
 export const overlayAppearanceChangedEvent = "overlay-appearance-changed";
-export const defaultGlobalPaint: GlobalPaint = {
-  id: "global-paint-1",
-  name: "1",
-  paint: defaultSolidPaint,
-};
+export const defaultGlobalPaint: GlobalPaint = defaultGlobalPaints[0];
 
 export const defaultOverlayAppearance: OverlayAppearance = {
   activePaintId: defaultGlobalPaint.id,
   opacity: 1,
-  paints: [defaultGlobalPaint],
+  paints: defaultGlobalPaints,
 };
 
 const storageKey = "motionAnchor.overlayAppearance";
@@ -55,12 +51,22 @@ export function getActiveOverlayPaint(appearance: OverlayAppearance): Paint {
   );
 }
 
-export function createGlobalPaint(paint: Paint = defaultSolidPaint, name?: string): GlobalPaint {
+export function createGlobalPaint(id: string, paint: Paint = defaultSolidPaint): GlobalPaint {
   return {
-    id: createGlobalPaintId(),
-    name: name ?? "",
+    id: normalizeGlobalPaintId(id) ?? "1",
     paint: normalizePaint(paint),
   };
+}
+
+export function getNextGlobalPaintId(paints: GlobalPaint[]): string {
+  const maxId = paints.reduce((max, paint) => {
+    const normalizedId = normalizeGlobalPaintId(paint.id);
+    const numericId = normalizedId ? Number(normalizedId) : 0;
+
+    return Number.isFinite(numericId) ? Math.max(max, numericId) : max;
+  }, 0);
+
+  return String(maxId + 1);
 }
 
 function normalizeOverlayAppearance(appearance: Partial<OverlayAppearance>): OverlayAppearance {
@@ -80,16 +86,23 @@ function normalizeOverlayAppearance(appearance: Partial<OverlayAppearance>): Ove
 function normalizeGlobalPaints(paints: GlobalPaint[] | undefined): GlobalPaint[] {
   const normalizedPaints =
     paints
-      ?.filter((paint) => typeof paint?.id === "string")
-      .map((paint, index) => ({
+      ?.filter((paint) => isNumericString(paint.id))
+      .map((paint) => ({
         id: paint.id,
-        name: typeof paint.name === "string" && paint.name.trim() ? paint.name : String(index + 1),
         paint: normalizePaint(paint.paint),
       })) ?? [];
 
-  return normalizedPaints.length > 0 ? normalizedPaints : defaultOverlayAppearance.paints;
+  return normalizedPaints.length > 0 ? normalizedPaints : defaultGlobalPaints;
 }
 
-function createGlobalPaintId() {
-  return globalThis.crypto?.randomUUID?.() ?? `global-paint-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+function normalizeGlobalPaintId(id: unknown) {
+  const trimmedId = typeof id === "string" ? id.trim() : "";
+
+  return isNumericString(trimmedId) ? String(Number(trimmedId)) : null;
+}
+
+function isNumericString(value: unknown) {
+  const text = typeof value === "string" ? value.trim() : "";
+
+  return /^\d+$/.test(text) && Number(text) > 0;
 }
