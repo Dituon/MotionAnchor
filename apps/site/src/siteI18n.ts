@@ -8,7 +8,6 @@ export const siteResources = {
     download: {
       button: "Download",
       latest: "Download latest",
-      menuLabel: "Other download options",
       releaseDescription: "Open the GitHub release page for alternate download options.",
       releaseLabel: "GitHub Releases",
     },
@@ -17,13 +16,11 @@ export const siteResources = {
       source: "Source",
     },
     hero: {
-      previewLabel: "MotionAnchor overlay preview",
       summary:
         "Build a stable, input-responsive 2D reference frame on screen to help reduce dizziness and discomfort in 3D scenes.",
       tryOnline: "Try online",
     },
     presets: {
-      ariaLabel: "Plugin preset",
       balanced: "Balanced",
       "edge-alert": "Edge alert",
       "focus-ring": "Focus ring",
@@ -42,7 +39,6 @@ export const siteResources = {
     download: {
       button: "下载",
       latest: "下载最新版",
-      menuLabel: "其他下载方式",
       releaseDescription: "打开 GitHub 发布页查看更多下载方式。",
       releaseLabel: "GitHub 发布页",
     },
@@ -51,12 +47,10 @@ export const siteResources = {
       source: "源码",
     },
     hero: {
-      previewLabel: "MotionAnchor 叠加层预览",
       summary: "在屏幕上建立稳定、可响应操作的平面参考系，帮助缓解 3D 画面带来的眩晕与不适。",
       tryOnline: "在线试用",
     },
     presets: {
-      ariaLabel: "插件预设",
       balanced: "均衡",
       "edge-alert": "边缘提醒",
       "focus-ring": "聚焦环",

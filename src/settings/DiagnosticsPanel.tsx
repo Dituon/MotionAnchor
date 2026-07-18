@@ -133,9 +133,11 @@ export function DiagnosticsPanel({
           </Accordion.Trigger>
         </Accordion.Heading>
         <Accordion.Panel>
-          <Accordion.Body className="grid gap-3 px-2 pb-2 pt-3">
+          <Accordion.Body className="grid gap-3 px-2 pb-2 pt-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]">
             {rawMouseStatus?.message && (
-              <Typography.Paragraph className="text-xs text-muted">{rawMouseStatus.message}</Typography.Paragraph>
+              <Typography.Paragraph className="text-xs text-muted [grid-column:1/-1]">
+                {rawMouseStatus.message}
+              </Typography.Paragraph>
             )}
             <PluginEnvironmentPanel environment={pluginEnvironment} onEnvironmentChange={updatePluginEnvironment} />
             <RawMouseSettingsPanel

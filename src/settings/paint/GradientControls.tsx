@@ -16,8 +16,6 @@ type GradientControlsProps = {
 const radialShapes: RadialGradientPaint["shape"][] = ["circle", "ellipse"];
 
 export function GradientControls({ isDisabled = false, picker }: GradientControlsProps) {
-  const { t } = useTranslation();
-
   if (!picker.isGradient) {
     return null;
   }
@@ -31,7 +29,6 @@ export function GradientControls({ isDisabled = false, picker }: GradientControl
       <div className="flex items-center gap-2">
         {anglePaint ? (
           <NumberControl
-            ariaLabel={t("paint.angle")}
             icon={<TriangleRight className="size-4 text-muted" />}
             isDisabled={isDisabled}
             max={360}
@@ -44,7 +41,6 @@ export function GradientControls({ isDisabled = false, picker }: GradientControl
         )}
 
         <NumberControl
-          ariaLabel={t("paint.stopOffset")}
           icon={<MapPin className="size-4 text-muted" />}
           isDisabled={isDisabled}
           max={100}
@@ -55,7 +51,6 @@ export function GradientControls({ isDisabled = false, picker }: GradientControl
 
         <Button
           isIconOnly
-          aria-label={t("paint.deleteStop")}
           isDisabled={isDisabled || picker.stops.length <= 2}
           size="sm"
           variant="ghost"
@@ -80,7 +75,6 @@ export function GradientControls({ isDisabled = false, picker }: GradientControl
           {(["x", "y"] as const).map((axis) => (
             <NumberControl
               key={axis}
-              ariaLabel={t("paint.positionAxis", { axis: axis.toUpperCase() })}
               isDisabled={isDisabled}
               max={100}
               prefix={axis.toUpperCase()}
@@ -118,7 +112,6 @@ function RadialShapeControl({ isDisabled, picker }: { isDisabled: boolean; picke
 }
 
 function NumberControl({
-  ariaLabel,
   icon,
   isDisabled,
   max,
@@ -127,7 +120,6 @@ function NumberControl({
   value,
   onChange,
 }: {
-  ariaLabel: string;
   icon?: ReactNode;
   isDisabled: boolean;
   max: number;
@@ -137,7 +129,7 @@ function NumberControl({
   onChange: (value: number) => void;
 }) {
   return (
-    <TextField aria-label={ariaLabel}>
+    <TextField>
       <InputGroup fullWidth variant="secondary">
         <InputGroup.Prefix>{icon ?? prefix}</InputGroup.Prefix>
         <InputGroup.Input

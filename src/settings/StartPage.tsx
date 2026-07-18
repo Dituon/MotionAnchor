@@ -2,7 +2,6 @@ import {
   Button,
   Card,
   Label,
-  Separator,
   Slider,
   Typography,
 } from "@heroui/react";
@@ -39,7 +38,7 @@ const gameSettingTips = [
   { icon: Maximize2, key: "resolutionScale" },
 ] satisfies GameSettingTip[];
 
-const roundIconButtonClass = "h-10 w-10 min-w-0 shrink-0 rounded-full p-0";
+const roundIconButtonClass = "h-11 w-11 min-w-0 shrink-0 rounded-full p-0";
 
 export function StartPage({
   activePaint,
@@ -53,7 +52,7 @@ export function StartPage({
   opacity,
 }: StartPageProps) {
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]">
       <OverlaySetupCard
         activePaint={activePaint}
         activePaintId={activePaintId}
@@ -131,44 +130,29 @@ function GlobalPaintPalette({
     <div className="grid gap-2">
       <Label>{t("start.globalColor")}</Label>
       <div className="flex min-w-0 flex-wrap gap-2">
-        {paints.map((paint, index) => {
+        {paints.map((paint) => {
           const isSelected = paint.id === activePaintId;
-          const label = t("start.globalPaintSlot", { index: index + 1 });
 
           return (
             <Button
               key={paint.id}
-              aria-label={label}
               className={`h-11 w-11 min-w-0 rounded-full p-0 ${
                 isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
               }`}
               variant={isSelected ? "secondary" : "ghost"}
               onPress={() => onSelect(paint.id)}
             >
-              <PaintSwatch ariaLabel={label} className="h-9 w-9" paint={paint.paint} />
+              <PaintSwatch className="h-9 w-9" paint={paint.paint} />
             </Button>
           );
         })}
         <div className="flex flex-wrap gap-2">
-          <Button
-            isIconOnly
-            aria-label={t("start.addGlobalPaint")}
-            className={roundIconButtonClass}
-            size="sm"
-            variant="secondary"
-            onPress={onAdd}
-          >
+          <Button isIconOnly className={roundIconButtonClass} size="sm" variant="secondary" onPress={onAdd}>
             <Plus aria-hidden="true" />
           </Button>
-          <PaintEditorButton
-            className={roundIconButtonClass}
-            label={t("start.editGlobalPaint")}
-            value={activePaint}
-            onChange={onPaintChange}
-          />
+          <PaintEditorButton className={roundIconButtonClass} value={activePaint} onChange={onPaintChange} />
           <Button
             isIconOnly
-            aria-label={t("start.deleteGlobalPaint")}
             className={roundIconButtonClass}
             isDisabled={!activeGlobalPaint || paints.length <= 1}
             size="sm"
@@ -196,7 +180,6 @@ function GlobalOpacitySetting({
         <Typography.Code>{Math.round(opacity * 100)}%</Typography.Code>
       </div>
       <Slider
-        aria-label={t("start.globalOpacity")}
         minValue={0}
         maxValue={1}
         step={0.01}
@@ -227,28 +210,25 @@ function GameSettingsCard() {
           <Card.Description>{t("start.gameSettingsDescription")}</Card.Description>
         </div>
       </Card.Header>
-      <Card.Content>
-        {gameSettingTips.map((tip, index) => (
-          <GameSettingTipRow key={tip.key} index={index} tip={tip} />
+      <Card.Content className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
+        {gameSettingTips.map((tip) => (
+          <GameSettingTipRow key={tip.key} tip={tip} />
         ))}
       </Card.Content>
     </Card>
   );
 }
 
-function GameSettingTipRow({ index, tip }: { index: number; tip: GameSettingTip }) {
+function GameSettingTipRow({ tip }: { tip: GameSettingTip }) {
   const { t } = useTranslation();
   const Icon = tip.icon;
 
   return (
-    <div>
-      {index > 0 && <Separator />}
-      <div className="grid gap-3 py-4 sm:grid-cols-[2rem_minmax(0,1fr)]">
-        <Icon aria-hidden="true" className="size-5 text-muted" />
-        <div className="min-w-0">
-          <Typography.Paragraph className="font-medium">{t(`start.tips.${tip.key}.title`)}</Typography.Paragraph>
-          <Typography.Paragraph className="text-muted">{t(`start.tips.${tip.key}.description`)}</Typography.Paragraph>
-        </div>
+    <div className="grid gap-3 rounded-md py-3 sm:grid-cols-[2rem_minmax(0,1fr)]">
+      <Icon aria-hidden="true" className="size-5 text-muted" />
+      <div className="min-w-0">
+        <Typography.Paragraph className="font-medium">{t(`start.tips.${tip.key}.title`)}</Typography.Paragraph>
+        <Typography.Paragraph className="text-muted">{t(`start.tips.${tip.key}.description`)}</Typography.Paragraph>
       </div>
     </div>
   );

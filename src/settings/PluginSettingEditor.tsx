@@ -57,7 +57,6 @@ export function PluginSettingEditor({
   if (setting.kind === "number" || setting.kind === "px") {
     return (
       <NumericSettingEditor
-        label={label}
         max={setting.max}
         min={setting.min}
         step={setting.step}
@@ -77,7 +76,6 @@ export function PluginSettingEditor({
 
     return (
       <EnumSettingEditor
-        label={label}
         options={options}
         settingKey={setting.key}
         value={selectedValue}
@@ -91,7 +89,6 @@ export function PluginSettingEditor({
 
     return (
       <LengthSettingEditor
-        label={label}
         setting={setting}
         value={lengthValue}
         onChange={onChange}
@@ -103,7 +100,6 @@ export function PluginSettingEditor({
 }
 
 function NumericSettingEditor({
-  label,
   max,
   min,
   step,
@@ -111,7 +107,6 @@ function NumericSettingEditor({
   value,
   onChange,
 }: {
-  label: string;
   max?: number;
   min?: number;
   step?: number;
@@ -122,7 +117,6 @@ function NumericSettingEditor({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
       <Slider
-        aria-label={label}
         className="min-w-0"
         minValue={min}
         maxValue={max}
@@ -140,7 +134,6 @@ function NumericSettingEditor({
         </Slider.Track>
       </Slider>
       <NumberInputGroup
-        label={label}
         max={max}
         min={min}
         step={step}
@@ -153,13 +146,11 @@ function NumericSettingEditor({
 }
 
 function EnumSettingEditor({
-  label,
   options,
   settingKey,
   value,
   onChange,
 }: {
-  label: string;
   options: NonNullable<PluginManifest["schema"][number]["options"]>;
   settingKey: string;
   value: string;
@@ -169,7 +160,6 @@ function EnumSettingEditor({
 
   return (
     <Select
-      aria-label={label}
       fullWidth
       value={value}
       variant="secondary"
@@ -204,12 +194,10 @@ function EnumSettingEditor({
 }
 
 function LengthSettingEditor({
-  label,
   setting,
   value,
   onChange,
 }: {
-  label: string;
   setting: PluginManifest["schema"][number];
   value: LengthValue;
   onChange: (value: unknown) => void;
@@ -225,7 +213,6 @@ function LengthSettingEditor({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
       <Slider
-        aria-label={label}
         className="min-w-0"
         minValue={unitConfig.min}
         maxValue={unitConfig.max}
@@ -243,7 +230,6 @@ function LengthSettingEditor({
         </Slider.Track>
       </Slider>
       <NumberInputGroup
-        label={label}
         max={unitConfig.max}
         min={unitConfig.min}
         step={unitConfig.step}
@@ -257,7 +243,6 @@ function LengthSettingEditor({
 }
 
 function NumberInputGroup({
-  label,
   max,
   min,
   step,
@@ -266,7 +251,6 @@ function NumberInputGroup({
   onChange,
   onToggleUnit,
 }: {
-  label: string;
   max?: number;
   min?: number;
   step?: number;
@@ -276,7 +260,7 @@ function NumberInputGroup({
   onToggleUnit?: () => void;
 }) {
   return (
-    <TextField aria-label={`${label} value`}>
+    <TextField>
       <InputGroup fullWidth variant="secondary">
         <InputGroup.Input
           className="w-full"
@@ -290,7 +274,6 @@ function NumberInputGroup({
         {unit ? (
           <InputGroup.Suffix className="pr-0">
             <Button
-              aria-label={`${label} unit`}
               isDisabled={!onToggleUnit}
               size="sm"
               variant="ghost"

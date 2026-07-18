@@ -1,7 +1,6 @@
 import { colorSliderVariants } from "@heroui/react";
 import type { CSSProperties } from "react";
 import { useRef } from "react";
-import { useTranslation } from "react-i18next";
 
 import { clamp01, gradientBarCss } from "./paintUtils";
 import type { GradientStop, Paint } from "./types";
@@ -25,7 +24,6 @@ export function GradientBar({
   onSelectStop,
   onStopOffsetChange,
 }: GradientBarProps) {
-  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const slots = colorSliderVariants();
   const startColor = stops[0]?.color ?? "transparent";
@@ -63,7 +61,6 @@ export function GradientBar({
         {stops.map((stop, index) => (
           <GradientHandle
             key={`${stop.color}-${index}`}
-            ariaLabel={t("paint.gradientStop", { index: index + 1 })}
             index={index}
             isActive={index === activeIndex}
             isDisabled={isDisabled}
@@ -72,8 +69,6 @@ export function GradientBar({
             onMove={(offset) => onStopOffsetChange(index, offset)}
             onSelect={onSelectStop}
             offsetFromClientX={offsetFromClientX}
-            selectedLabel={t("paint.selected")}
-            selectLabel={t("paint.select")}
             thumbClassName={slots.thumb()}
           />
         ))}
@@ -83,7 +78,6 @@ export function GradientBar({
 }
 
 function GradientHandle({
-  ariaLabel,
   index,
   isActive,
   isDisabled,
@@ -91,12 +85,9 @@ function GradientHandle({
   onMove,
   onSelect,
   offsetFromClientX,
-  selectedLabel,
-  selectLabel,
   stopColor,
   thumbClassName,
 }: {
-  ariaLabel: string;
   index: number;
   isActive: boolean;
   isDisabled: boolean;
@@ -104,14 +95,11 @@ function GradientHandle({
   onMove: (offset: number) => void;
   onSelect: (index: number) => void;
   offsetFromClientX: (clientX: number) => number;
-  selectedLabel: string;
-  selectLabel: string;
   stopColor: string;
   thumbClassName: string;
 }) {
   return (
     <button
-      aria-label={ariaLabel}
       className={thumbClassName}
       data-disabled={isDisabled ? "true" : undefined}
       data-focus-visible={isActive ? "true" : undefined}
@@ -132,8 +120,6 @@ function GradientHandle({
           onMove(offsetFromClientX(event.clientX));
         }
       }}
-    >
-      <span className="sr-only">{isActive ? selectedLabel : selectLabel}</span>
-    </button>
+    />
   );
 }

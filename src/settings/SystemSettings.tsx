@@ -19,9 +19,9 @@ export function SystemSettings({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]">
       {error && (
-        <Card>
+        <Card className="[grid-column:1/-1]">
           <Card.Content>{error}</Card.Content>
         </Card>
       )}

@@ -79,6 +79,15 @@ export default definePlugin({
 | `settings` | `Record<string, PluginSettingDefinition>` | 配置项定义，自动生成配置面板与 manifest。 |
 | `mount` | `(root, api) => PluginInstance \| void` | 插件挂载函数。 |
 
+### PluginSettingDefinition
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `defaultValue` | `unknown` | 默认值。 |
+| `kind` | `string` | 配置项类型。 |
+| `label` | `string` | 默认标签。 |
+| `visibleWhen` | `{ key: string; equals: unknown \| unknown[] }` | 条件显示，仅当指定设置值匹配时才渲染。 |
+
 ### Lifecycle
 
 `mount(root, api)` 会在插件启用时被调用。`root` 是分配给插件的 DOM 容器，`api` 用于读取当前插件信息、配置和鼠标运动数据。

@@ -9,7 +9,6 @@ import { usePaintPicker, type PaintPickerState } from "./usePaintPicker";
 export type PaintPickerProps = {
   children: (picker: PaintPickerState) => ReactNode;
   isDisabled?: boolean;
-  label: string;
   solidOnly?: boolean;
   value?: Paint;
   onChange: (paint: Paint) => void;
@@ -18,7 +17,6 @@ export type PaintPickerProps = {
 export function PaintPicker({
   children,
   isDisabled = false,
-  label,
   solidOnly = false,
   value,
   onChange,
@@ -30,7 +28,6 @@ export function PaintPicker({
 
   return (
     <ColorPicker
-      aria-label={label}
       value={parsePaintColor(picker.selectedColor)}
       onChange={(nextColor) => {
         if (!isDisabled) {
@@ -40,7 +37,7 @@ export function PaintPicker({
     >
       {children(picker)}
       <ColorPicker.Popover className="w-[18.375rem] max-w-[calc(100vw-2rem)] gap-3">
-        <PaintPickerContent isDisabled={isDisabled} label={label} picker={picker} solidOnly={solidOnly} />
+        <PaintPickerContent isDisabled={isDisabled} picker={picker} solidOnly={solidOnly} />
       </ColorPicker.Popover>
     </ColorPicker>
   );

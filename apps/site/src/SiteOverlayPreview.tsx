@@ -558,7 +558,6 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
   return (
     <div ref={anchorRef} className="relative aspect-[16/10] w-[min(100%,38rem)] overflow-visible">
       <div
-        aria-label={expanded ? "Shrink overlay preview" : "Enlarge overlay preview"}
         aria-pressed={expanded}
         onClick={() => toggleExpandedRef.current()}
         onKeyDown={(event) => {

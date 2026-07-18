@@ -48,7 +48,6 @@ export function ShortcutRecorder({
   return (
     <div
       ref={recorderRef}
-      aria-label={t("shortcuts.recordTitle")}
       className="flex min-h-9 items-center gap-2 rounded-sm bg-surface-secondary px-3 text-sm text-muted outline-none ring-2 ring-accent"
       role="textbox"
       tabIndex={0}

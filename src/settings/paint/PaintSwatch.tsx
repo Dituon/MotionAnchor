@@ -2,17 +2,14 @@ import { paintToCss } from "./paintUtils";
 import type { Paint } from "./types";
 
 type PaintSwatchProps = {
-  ariaLabel?: string;
   className?: string;
   paint: Paint;
 };
 
-export function PaintSwatch({ ariaLabel, className = "h-10 w-10", paint }: PaintSwatchProps) {
+export function PaintSwatch({ className = "h-10 w-10", paint }: PaintSwatchProps) {
   return (
     <span
-      aria-label={ariaLabel}
       className={`relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-content2 shadow-sm ring-1 ring-border ${className}`}
-      role={ariaLabel ? "img" : undefined}
     >
       <span
         aria-hidden="true"

@@ -29,14 +29,13 @@ export function PaintInput({
     <div className={className}>
       <PaintPicker
         isDisabled={isDisabled}
-        label={resolvedLabel}
         solidOnly={solidOnly}
         value={value}
         onChange={onChange}
       >
         {(picker) => (
           <ColorPicker.Trigger className="w-full justify-start gap-3 text-left">
-            <PaintSwatch ariaLabel={t("paint.selectedColor", { label: resolvedLabel })} paint={picker.paint} />
+            <PaintSwatch paint={picker.paint} />
             <Label className="min-w-0 flex-1 truncate" isDisabled={isDisabled}>
               {resolvedLabel}
             </Label>

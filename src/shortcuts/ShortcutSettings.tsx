@@ -35,14 +35,7 @@ function ActionRow({
     <div className="grid gap-2 py-4">
       <div className="flex min-w-0 items-center gap-1">
         <span className="text-sm font-medium">{label}</span>
-        <Button
-          isIconOnly
-          aria-label={t("shortcuts.add")}
-          isDisabled={isBusy || isRecording}
-          size="sm"
-          variant="ghost"
-          onPress={onAdd}
-        >
+        <Button isIconOnly isDisabled={isBusy || isRecording} size="sm" variant="ghost" onPress={onAdd}>
           <Plus aria-hidden="true" />
         </Button>
       </div>
@@ -53,14 +46,7 @@ function ActionRow({
         {action.shortcuts.map((shortcut) => (
           <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-sm bg-surface-secondary px-3" key={shortcut}>
             <ShortcutKeys value={shortcut} />
-            <Button
-              isIconOnly
-              aria-label={t("shortcuts.remove")}
-              isDisabled={isBusy}
-              size="sm"
-              variant="ghost"
-              onPress={() => onRemove(shortcut)}
-            >
+            <Button isIconOnly isDisabled={isBusy} size="sm" variant="ghost" onPress={() => onRemove(shortcut)}>
               <X aria-hidden="true" />
             </Button>
           </div>
@@ -160,9 +146,9 @@ export function ShortcutSettings({ plugins, runtime }: { plugins: PluginManifest
   );
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr))]">
       {error && (
-        <Alert status="danger">
+        <Alert className="[grid-column:1/-1]" status="danger">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{t("shortcuts.errorTitle")}</Alert.Title>
@@ -171,7 +157,7 @@ export function ShortcutSettings({ plugins, runtime }: { plugins: PluginManifest
         </Alert>
       )}
 
-      <Card>
+      <Card className="[grid-column:1/-1]">
         <Card.Header>
           <Keyboard aria-hidden="true" />
           <div>

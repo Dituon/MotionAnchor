@@ -7,7 +7,6 @@ import type { Paint } from "./types";
 export type PaintEditorButtonProps = {
   className?: string;
   isDisabled?: boolean;
-  label: string;
   solidOnly?: boolean;
   value?: Paint;
   onChange: (paint: Paint) => void;
@@ -16,7 +15,6 @@ export type PaintEditorButtonProps = {
 export function PaintEditorButton({
   className,
   isDisabled = false,
-  label,
   solidOnly = false,
   value,
   onChange,
@@ -26,14 +24,12 @@ export function PaintEditorButton({
   return (
     <PaintPicker
       isDisabled={isDisabled}
-      label={label}
       solidOnly={solidOnly}
       value={value}
       onChange={onChange}
     >
       {() => (
         <ColorPicker.Trigger
-          aria-label={label}
           className={`button button--secondary button--sm button--icon-only ${buttonClassName}`}
           isDisabled={isDisabled}
         >

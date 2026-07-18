@@ -84,7 +84,7 @@ function SiteDownloadButton({
         {label}
       </Button>
       <Dropdown>
-        <Button aria-label={t("download.menuLabel")} isIconOnly size={size} variant="primary">
+        <Button isIconOnly size={size} variant="primary">
           <ButtonGroup.Separator />
           <ChevronDown aria-hidden="true" />
         </Button>
@@ -153,7 +153,6 @@ function SitePresetControls({ runtime }: { runtime: DemoSettingsRuntime }) {
   return (
     <div className="grid gap-3">
       <TagGroup
-        aria-label={t("presets.ariaLabel")}
         selectedKeys={new Set([activePresetId])}
         selectionMode="single"
         size="sm"
@@ -205,7 +204,6 @@ export function SiteApp() {
       >
         <nav
           className={`${pageWidth} ${row} min-h-16 justify-between gap-4 max-[860px]:flex-col max-[860px]:items-start max-[860px]:py-3 max-[640px]:hidden`}
-          aria-label="MotionAnchor"
         >
           <a className={`${row} min-w-0 gap-2.5 font-bold text-foreground no-underline`} href="#top">
             <img alt="MotionAnchor icon" className="size-8" src={iconUrl} />
@@ -245,7 +243,7 @@ export function SiteApp() {
             </div>
           </div>
 
-          <div className="grid w-[min(100%,32rem)] place-items-center justify-self-center max-[520px]:min-h-72" aria-label={t("hero.previewLabel")}>
+          <div className="grid w-[min(100%,32rem)] place-items-center justify-self-center max-[520px]:min-h-72">
             <SiteOverlayPreview runtime={runtime} />
           </div>
         </div>

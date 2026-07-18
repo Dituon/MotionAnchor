@@ -68,7 +68,6 @@ export function RawMouseSettingsPanel({
 
         <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
           <Slider
-            aria-label={t("rawMouseSettings.maxRefreshRate")}
             className="min-w-0"
             minValue={minRefreshRateHz}
             maxValue={maxRefreshRateHz}
@@ -86,7 +85,7 @@ export function RawMouseSettingsPanel({
             </Slider.Track>
           </Slider>
 
-          <TextField aria-label={t("rawMouseSettings.maxRefreshRate")}>
+          <TextField>
             <InputGroup fullWidth variant="secondary">
               <InputGroup.Input
                 className="w-full"

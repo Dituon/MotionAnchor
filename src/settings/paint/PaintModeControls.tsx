@@ -13,11 +13,10 @@ type PaintModeControlsProps = {
 const gradientModes: Array<{
   type: Extract<PaintType, "linear-gradient" | "conic-gradient" | "radial-gradient">;
   icon: typeof GitCommitHorizontal;
-  labelKey: string;
 }> = [
-  { type: "linear-gradient", icon: GitCommitHorizontal, labelKey: "linearGradient" },
-  { type: "conic-gradient", icon: RotateCw, labelKey: "conicGradient" },
-  { type: "radial-gradient", icon: CircleDot, labelKey: "radialGradient" },
+  { type: "linear-gradient", icon: GitCommitHorizontal },
+  { type: "conic-gradient", icon: RotateCw },
+  { type: "radial-gradient", icon: CircleDot },
 ];
 
 export function PaintModeControls({ isDisabled = false, picker }: PaintModeControlsProps) {
@@ -46,11 +45,10 @@ export function PaintModeControls({ isDisabled = false, picker }: PaintModeContr
       </ButtonGroup>
 
       <ButtonGroup className="flex gap-1 rounded-md bg-content2 p-1">
-        {gradientModes.map(({ type, icon: Icon, labelKey }, index) => (
+        {gradientModes.map(({ type, icon: Icon }, index) => (
           <Button
             key={type}
             isIconOnly
-            aria-label={t(`paint.${labelKey}`)}
             isDisabled={isDisabled || !picker.isGradient}
             size="sm"
             variant={picker.gradientType === type ? "primary" : "ghost"}

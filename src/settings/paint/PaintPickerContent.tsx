@@ -8,18 +8,16 @@ import type { PaintPickerState } from "./usePaintPicker";
 
 type PaintPickerContentProps = {
   isDisabled: boolean;
-  label: string;
   picker: PaintPickerState;
   solidOnly: boolean;
 };
 
-export function PaintPickerContent({ isDisabled, label, picker, solidOnly }: PaintPickerContentProps) {
+export function PaintPickerContent({ isDisabled, picker, solidOnly }: PaintPickerContentProps) {
   const { t } = useTranslation();
 
   return (
     <>
       <ColorArea
-        aria-label={t("paint.colorArea", { label })}
         className="h-[18.375rem] w-full max-w-full rounded-md"
         colorSpace="hsb"
         xChannel="saturation"
@@ -32,7 +30,6 @@ export function PaintPickerContent({ isDisabled, label, picker, solidOnly }: Pai
       {!solidOnly ? <GradientControls isDisabled={isDisabled} picker={picker} /> : null}
 
       <ColorSlider
-        aria-label={t("paint.hue")}
         className="gap-1 px-1"
         colorSpace="hsb"
         channel="hue"
@@ -46,7 +43,6 @@ export function PaintPickerContent({ isDisabled, label, picker, solidOnly }: Pai
       </ColorSlider>
 
       <ColorSlider
-        aria-label={t("paint.alpha")}
         className="gap-1 px-1"
         colorSpace="hsb"
         channel="alpha"
