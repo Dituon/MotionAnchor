@@ -7,8 +7,8 @@ use tauri::{
     AppHandle, Emitter, Manager, Runtime, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 
+mod input;
 mod plugins;
-mod raw_input;
 mod settings_store;
 mod shortcuts;
 
@@ -68,7 +68,7 @@ fn set_overlay_visibility_inner(
     apply_overlay_visibility(app, visible)?;
 
     if !visible {
-        app.state::<raw_input::RawInputState>().stop();
+        app.state::<input::InputState>().stop();
     }
 
     if let Ok(mut current) = state.overlay_visible.lock() {
@@ -153,16 +153,16 @@ pub fn run() {
         .manage(AppState {
             overlay_visible: Mutex::new(true),
         })
-        .manage(raw_input::RawInputState::default())
+        .manage(input::InputState::default())
         .manage(shortcuts::ShortcutState::default())
         .invoke_handler(tauri::generate_handler![
             get_overlay_visible,
             set_overlay_visible,
             show_config,
-            raw_input::get_raw_mouse_enabled,
-            raw_input::get_raw_mouse_settings,
-            raw_input::set_raw_mouse_enabled,
-            raw_input::set_raw_mouse_settings,
+            input::get_input_enabled,
+            input::get_input_profile,
+            input::set_input_enabled,
+            input::set_input_profile,
             plugins::load_plugin_overrides,
             plugins::set_plugin_enabled,
             plugins::update_plugin_setting,

@@ -8,14 +8,10 @@ import {
 } from "../plugins/environment";
 import { pluginModules, createPluginsPayload } from "../plugins/registry";
 import { createPluginPaintApi } from "../plugins/runtimeSettings";
-import type {
-  MotionFrame,
-  PluginInstance,
-  PluginManifest,
-  PluginOverridesPayload,
-  RawMousePayload,
-} from "../plugins/types";
-import { getOverlayVisible, loadPlugins, setPluginEnabled, setRawMouseEnabled } from "../tauri/pluginCommands";
+import type { PluginInstance, PluginManifest, PluginOverridesPayload } from "../plugins/types";
+import { getOverlayVisible, loadPlugins, setInputEnabled, setPluginEnabled } from "../tauri/pluginCommands";
+import type { InputVector2Payload } from "../tauri/types";
+import { InputRuntime } from "../input/inputRuntime";
 import {
   applyOverlayAppearance,
   defaultOverlayAppearance,
@@ -24,32 +20,13 @@ import {
   type OverlayAppearance,
 } from "./appearance";
 
-const emptyMotion: MotionFrame = {
-  deviceId: 0,
-  dx: 0,
-  dy: 0,
-  dtMs: 16.67,
-  speed: 0,
-  acceleration: 0,
-  timestampMs: 0,
-  seq: 0,
-  lastAt: 0,
-};
-
-type PendingMotion = {
-  deviceId: number;
-  dx: number;
-  dy: number;
-  count: number;
-  timestampMs: number;
-};
-
 type MountedPlugin = {
+  destroy: () => void;
+  instance: PluginInstance;
   refresh: () => void;
   root: HTMLDivElement;
-  instance: PluginInstance;
   setPlugin: (plugin: PluginManifest) => void;
-  destroy: () => void;
+  usesInput: () => boolean;
 };
 
 type PluginShortcutAction = {
@@ -57,12 +34,8 @@ type PluginShortcutAction = {
   pluginId: string;
 };
 
-function pluginUsesRawMouse(instance: PluginInstance) {
-  if (typeof instance.usesRawMouse === "function") {
-    return instance.usesRawMouse();
-  }
-
-  return instance.usesRawMouse === true;
+function pluginUsesInput(plugin: PluginManifest) {
+  return plugin.schema.some((setting) => setting.kind === "vector2");
 }
 
 export function OverlayStage() {
@@ -72,32 +45,23 @@ export function OverlayStage() {
   const pluginsRef = useRef<PluginManifest[]>([]);
   const environmentRef = useRef<PluginEnvironment>(getPluginEnvironment());
   const overlayAppearanceRef = useRef<OverlayAppearance>(defaultOverlayAppearance);
-  const motionRef = useRef<MotionFrame>(emptyMotion);
+  const inputRuntimeRef = useRef(new InputRuntime());
   const requestFrameRef = useRef<() => void>(() => {});
   const overlayVisibleRef = useRef(true);
-  const rawMouseEnabledRef = useRef<boolean | null>(null);
-  const pendingRef = useRef<PendingMotion>({
-    deviceId: 0,
-    dx: 0,
-    dy: 0,
-    count: 0,
-    timestampMs: 0,
-  });
+  const inputEnabledRef = useRef<boolean | null>(null);
 
-  const syncRawMouseSubscription = () => {
+  const syncInputSubscription = () => {
     const enabled =
       overlayVisibleRef.current &&
-      Array.from(mountedPluginsRef.current.values()).some((mountedPlugin) =>
-        pluginUsesRawMouse(mountedPlugin.instance),
-      );
+      Array.from(mountedPluginsRef.current.values()).some((mountedPlugin) => mountedPlugin.usesInput());
 
-    if (rawMouseEnabledRef.current === enabled) {
+    if (inputEnabledRef.current === enabled) {
       return;
     }
 
-    rawMouseEnabledRef.current = enabled;
-    setRawMouseEnabled(enabled).catch((error) => {
-      rawMouseEnabledRef.current = null;
+    inputEnabledRef.current = enabled;
+    setInputEnabled(enabled).catch((error) => {
+      inputEnabledRef.current = null;
       console.error(error);
     });
   };
@@ -121,10 +85,10 @@ export function OverlayStage() {
     root.dataset.pluginId = plugin.id;
     stage.appendChild(root);
 
-    const instance =
+    const instance: PluginInstance =
       module.mount(root, {
         env: () => environmentRef.current,
-        motion: () => motionRef.current,
+        input: inputRuntimeRef.current.createPluginApi(() => currentPlugin.settings),
         paint: createPluginPaintApi({
           appearance: overlayAppearanceRef,
           getSettings: () => currentPlugin.settings,
@@ -132,6 +96,9 @@ export function OverlayStage() {
           viewportElement: stage,
         }),
         plugin: () => currentPlugin,
+        render: {
+          request: () => requestFrameRef.current(),
+        },
         settings: () => currentPlugin.settings,
       }) ?? {};
 
@@ -144,8 +111,11 @@ export function OverlayStage() {
       setPlugin(nextPlugin) {
         currentPlugin = nextPlugin;
         instance.updatePlugin?.(currentPlugin);
-        syncRawMouseSubscription();
+        syncInputSubscription();
         requestFrameRef.current();
+      },
+      usesInput() {
+        return pluginUsesInput(currentPlugin);
       },
       destroy() {
         instance.destroy?.();
@@ -153,7 +123,7 @@ export function OverlayStage() {
       },
     });
 
-    syncRawMouseSubscription();
+    syncInputSubscription();
     requestFrameRef.current();
   };
 
@@ -161,7 +131,7 @@ export function OverlayStage() {
     let cancelled = false;
     let animationId = 0;
     let frameScheduled = false;
-    let unlistenMouse: (() => void) | undefined;
+    let unlistenInput: (() => void) | undefined;
     let unlistenPlugins: (() => void) | undefined;
     let unlistenPluginAction: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
@@ -172,6 +142,28 @@ export function OverlayStage() {
       const payload = await loadPlugins();
       if (!cancelled) {
         setPlugins(payload.plugins);
+      }
+    };
+
+    const requestFrame = () => {
+      if (cancelled || frameScheduled) {
+        return;
+      }
+
+      frameScheduled = true;
+      animationId = requestAnimationFrame(draw);
+    };
+
+    const draw = (time: number) => {
+      frameScheduled = false;
+      let shouldContinue = false;
+
+      for (const mountedPlugin of mountedPluginsRef.current.values()) {
+        shouldContinue = mountedPlugin.instance.frame?.(time) === true || shouldContinue;
+      }
+
+      if (shouldContinue) {
+        requestFrame();
       }
     };
 
@@ -203,81 +195,21 @@ export function OverlayStage() {
       await refreshPlugins();
     };
 
-    const requestFrame = () => {
-      if (cancelled || frameScheduled) {
-        return;
-      }
-
-      frameScheduled = true;
-      animationId = requestAnimationFrame(draw);
-    };
-
-    const draw = () => {
-      frameScheduled = false;
-      const now = performance.now();
-      const pending = pendingRef.current;
-      let shouldContinue = false;
-
-      if (pending.count > 0) {
-        const previous = motionRef.current;
-        const dtMs = Math.max(1, previous.lastAt === 0 ? 16.67 : now - previous.lastAt);
-        const distance = Math.hypot(pending.dx, pending.dy);
-        const speed = distance / (dtMs / 1000);
-        const acceleration = (speed - previous.speed) / (dtMs / 1000);
-
-        motionRef.current = {
-          deviceId: pending.deviceId,
-          dx: pending.dx,
-          dy: pending.dy,
-          dtMs,
-          speed,
-          acceleration,
-          timestampMs: pending.timestampMs,
-          seq: previous.seq + 1,
-          lastAt: now,
-        };
-
-        pendingRef.current = {
-          deviceId: pending.deviceId,
-          dx: 0,
-          dy: 0,
-          count: 0,
-          timestampMs: pending.timestampMs,
-        };
-
-        shouldContinue = true;
-      }
-
-      for (const mountedPlugin of mountedPluginsRef.current.values()) {
-        mountedPlugin.instance.updateMotion?.(motionRef.current);
-        shouldContinue = mountedPlugin.instance.frame?.(now) === true || shouldContinue;
-      }
-
-      if (shouldContinue) {
-        requestFrame();
-      }
-    };
-
     requestFrameRef.current = requestFrame;
     boot().catch(console.error);
     getOverlayVisible()
       .then((visible) => {
         overlayVisibleRef.current = visible;
-        syncRawMouseSubscription();
+        syncInputSubscription();
       })
       .catch(console.error);
     requestFrame();
 
-    listen<RawMousePayload>("raw-mouse", (event) => {
-      const pending = pendingRef.current;
-      pending.deviceId = event.payload.deviceId;
-      pending.dx += event.payload.dx;
-      pending.dy += event.payload.dy;
-      pending.count += 1;
-      pending.timestampMs = event.payload.timestampMs;
+    listen<InputVector2Payload>("input-vector2", (event) => {
+      inputRuntimeRef.current.pushVector2(event.payload);
       requestFrame();
     }).then((unlisten) => {
-      unlistenMouse = unlisten;
+      unlistenInput = unlisten;
     });
 
     listen<PluginOverridesPayload>("plugins-changed", (event) => {
@@ -301,7 +233,7 @@ export function OverlayStage() {
 
     listen<boolean>("overlay-visibility-changed", (event) => {
       overlayVisibleRef.current = event.payload;
-      syncRawMouseSubscription();
+      syncInputSubscription();
 
       if (event.payload) {
         requestFrame();
@@ -327,9 +259,9 @@ export function OverlayStage() {
       cancelled = true;
       cancelAnimationFrame(animationId);
       requestFrameRef.current = () => {};
-      rawMouseEnabledRef.current = false;
-      setRawMouseEnabled(false).catch(console.error);
-      unlistenMouse?.();
+      inputEnabledRef.current = false;
+      setInputEnabled(false).catch(console.error);
+      unlistenInput?.();
       unlistenPlugins?.();
       unlistenPluginAction?.();
       unlistenOverlay?.();
@@ -373,7 +305,7 @@ export function OverlayStage() {
       }
     }
 
-    syncRawMouseSubscription();
+    syncInputSubscription();
     requestFrameRef.current();
   }, [plugins]);
 

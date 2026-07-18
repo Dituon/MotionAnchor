@@ -3,7 +3,6 @@ import type {
   PluginDirectoryPayload,
   PluginOverride,
   PluginOverridesPayload,
-  RawMousePayload,
 } from "@motion-anchor/app/plugins/types";
 import {
   applyOverlayAppearance,
@@ -14,7 +13,8 @@ import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
 import { createShortcutSettings } from "@motion-anchor/app/shortcuts/shortcutModel";
 import type { ShortcutBindingsPayload, ShortcutSettingsPayload } from "@motion-anchor/app/shortcuts/types";
-import type { RawMouseSettingsPayload, RawMouseStatusPayload } from "@motion-anchor/app/tauri/types";
+import type { InputProfilePayload, InputStatusPayload, InputVector2Payload } from "@motion-anchor/app/tauri/types";
+import { defaultInputProfile } from "@motion-anchor/app/input/defaultProfile";
 import { createSitePluginOverrides, createSiteShortcutBindings, type SitePluginPreset } from "./siteDefaults";
 
 export type DemoSettingsRuntime = SettingsRuntime & {
@@ -39,21 +39,17 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   let overlayAppearance: OverlayAppearance = defaultOverlayAppearance;
   let pluginEnvironment: PluginEnvironment = { debug: false };
   let overlayVisible = true;
-  let rawMouseEnabled = false;
-  let rawMouseListening = false;
-  let rawMouseSettings: RawMouseSettingsPayload = {
-    maxRefreshRateHz: null,
-    defaultRefreshRateHz: 120,
-    effectiveRefreshRateHz: 120,
-  };
-  let lastRawMouseAt = performance.now();
-  let lastRawMouseSpeed = 0;
+  let inputEnabled = false;
+  let inputListening = false;
+  let inputProfile: InputProfilePayload = cloneJson(defaultInputProfile);
   let previousMouse: { x: number; y: number } | null = null;
+  let emittedZero = true;
   const overlayListeners = new Set<(visible: boolean) => void>();
   const overlayAppearanceListeners = new Set<(appearance: OverlayAppearance) => void>();
+  const inputProfileListeners = new Set<(payload: InputProfilePayload) => void>();
+  const inputStatusListeners = new Set<(payload: InputStatusPayload) => void>();
+  const inputVector2Listeners = new Set<(payload: InputVector2Payload) => void>();
   const pluginListeners = new Set<(payload: PluginDirectoryPayload) => void>();
-  const rawMouseListeners = new Set<(payload: RawMousePayload) => void>();
-  const rawMouseStatusListeners = new Set<(payload: RawMouseStatusPayload) => void>();
   const shortcutListeners = new Set<(payload: ShortcutSettingsPayload) => void>();
 
   const emitPlugins = () => {
@@ -86,14 +82,18 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     return emitPlugins();
   };
 
-  const handleRawMouseMove = (event: MouseEvent) => {
-    if (!rawMouseEnabled) {
+  const emitInputStatus = (status: InputStatusPayload) => {
+    inputStatusListeners.forEach((listener) => listener(status));
+  };
+
+  const emitVector2 = (payload: InputVector2Payload) => {
+    inputVector2Listeners.forEach((listener) => listener(payload));
+  };
+
+  const handleMouseMove = (event: MouseEvent) => {
+    if (!inputEnabled) {
       return;
     }
-
-    const time = performance.now();
-    const dtMs = Math.max(1, time - lastRawMouseAt);
-    lastRawMouseAt = time;
 
     let dx = event.movementX;
     let dy = event.movementY;
@@ -109,51 +109,57 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       return;
     }
 
-    const speed = Math.hypot(dx, dy) / (dtMs / 1000);
-    const acceleration = (speed - lastRawMouseSpeed) / (dtMs / 1000);
-    lastRawMouseSpeed = speed;
-
-    const payload: RawMousePayload = {
-      deviceId: 1,
-      dx,
-      dy,
-      dtMs,
-      speed,
-      acceleration,
-      timestampMs: Date.now(),
-    };
-
-    rawMouseListeners.forEach((listener) => listener(payload));
+    emittedZero = false;
+    emitVector2({ id: "look", x: dx, y: dy });
   };
 
-  const startRawMouse = () => {
-    if (rawMouseListening) {
+  const startInput = () => {
+    if (inputListening) {
       return;
     }
 
-    lastRawMouseAt = performance.now();
     previousMouse = null;
-    rawMouseListening = true;
-    window.addEventListener("mousemove", handleRawMouseMove, { passive: true });
+    emittedZero = true;
+    inputListening = true;
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    emitInputStatus({ status: "listening", message: "Demo input stream started" });
   };
 
-  const stopRawMouse = () => {
-    if (rawMouseListening) {
-      window.removeEventListener("mousemove", handleRawMouseMove);
-      rawMouseListening = false;
+  const stopInput = () => {
+    if (inputListening) {
+      window.removeEventListener("mousemove", handleMouseMove);
+      inputListening = false;
+    }
+
+    if (!emittedZero) {
+      emitVector2({ id: "look", x: 0, y: 0 });
+      emittedZero = true;
     }
 
     previousMouse = null;
+    emitInputStatus({ status: "stopped", message: "Demo input stream stopped" });
   };
 
   return {
     getAppVersion: async () => "0.1.1 demo",
+    getInputEnabled: async () => inputEnabled,
+    getInputProfile: async () => cloneJson(inputProfile),
     getOverlayAppearance: async () => overlayAppearance,
     getPluginEnvironment: async () => pluginEnvironment,
-    getRawMouseEnabled: async () => rawMouseEnabled,
-    getRawMouseSettings: async () => rawMouseSettings,
     getOverlayVisible: async () => overlayVisible,
     getShortcutSettings: async () => createShortcutSettings(shortcutBindings),
+    listenInputProfile: async (handler) => {
+      inputProfileListeners.add(handler);
+      return () => inputProfileListeners.delete(handler);
+    },
+    listenInputStatus: async (handler) => {
+      inputStatusListeners.add(handler);
+      return () => inputStatusListeners.delete(handler);
+    },
+    listenInputVector2: async (handler) => {
+      inputVector2Listeners.add(handler);
+      return () => inputVector2Listeners.delete(handler);
+    },
     listenOverlayVisible: async (handler) => {
       overlayListeners.add(handler);
       return () => overlayListeners.delete(handler);
@@ -165,14 +171,6 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
     listenPluginsChanged: async (handler) => {
       pluginListeners.add(handler);
       return () => pluginListeners.delete(handler);
-    },
-    listenRawMouse: async (handler) => {
-      rawMouseListeners.add(handler);
-      return () => rawMouseListeners.delete(handler);
-    },
-    listenRawMouseStatus: async (handler) => {
-      rawMouseStatusListeners.add(handler);
-      return () => rawMouseStatusListeners.delete(handler);
     },
     listenShortcutsChanged: async (handler) => {
       shortcutListeners.add(handler);
@@ -190,6 +188,22 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       return emitShortcuts();
     },
     applySitePluginPreset: async (preset) => applyPluginPreset(preset),
+    setInputEnabled: async (enabled) => {
+      inputEnabled = enabled;
+
+      if (inputEnabled) {
+        startInput();
+      } else {
+        stopInput();
+      }
+
+      return inputEnabled;
+    },
+    setInputProfile: async (profile) => {
+      inputProfile = cloneJson(profile);
+      inputProfileListeners.forEach((listener) => listener(cloneJson(inputProfile)));
+      return cloneJson(inputProfile);
+    },
     setOverlayAppearance: async (appearance) => {
       overlayAppearance = appearance;
       applyOverlayAppearance(overlayAppearance);
@@ -206,25 +220,6 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
       return pluginEnvironment;
     },
     setPluginEnabled: async (id, enabled) => updatePlugin(id, (plugin) => ({ ...plugin, enabled })),
-    setRawMouseEnabled: async (enabled) => {
-      rawMouseEnabled = enabled;
-
-      if (rawMouseEnabled) {
-        startRawMouse();
-      } else {
-        stopRawMouse();
-      }
-
-      return rawMouseEnabled;
-    },
-    setRawMouseSettings: async (maxRefreshRateHz) => {
-      rawMouseSettings = {
-        maxRefreshRateHz,
-        defaultRefreshRateHz: 120,
-        effectiveRefreshRateHz: maxRefreshRateHz ?? 120,
-      };
-      return rawMouseSettings;
-    },
     updatePluginSetting: async (id, key, value) =>
       updatePlugin(id, (plugin) => ({
         ...plugin,

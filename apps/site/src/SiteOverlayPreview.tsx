@@ -9,20 +9,9 @@ import {
 import { pluginModules } from "@motion-anchor/app/plugins/registry";
 import { createPluginPaintApi } from "@motion-anchor/app/plugins/runtimeSettings";
 import type { PluginEnvironment } from "@motion-anchor/app/plugins/environment";
-import type { MotionFrame, PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
+import type { PluginInstance, PluginManifest } from "@motion-anchor/app/plugins/types";
 import type { SettingsRuntime } from "@motion-anchor/app/settings/settingsRuntime";
-
-const emptyMotion: MotionFrame = {
-  deviceId: 0,
-  dx: 0,
-  dy: 0,
-  dtMs: 16.67,
-  speed: 0,
-  acceleration: 0,
-  timestampMs: 0,
-  seq: 0,
-  lastAt: 0,
-};
+import { InputRuntime } from "@motion-anchor/app/input/inputRuntime";
 
 type MountedPlugin = {
   destroy: () => void;
@@ -30,22 +19,11 @@ type MountedPlugin = {
   refresh: () => void;
   root: HTMLDivElement;
   setPlugin: (plugin: PluginManifest) => void;
+  usesInput: () => boolean;
 };
 
-type PendingMotion = {
-  count: number;
-  deviceId: number;
-  dx: number;
-  dy: number;
-  timestampMs: number;
-};
-
-function pluginUsesRawMouse(instance: PluginInstance) {
-  if (typeof instance.usesRawMouse === "function") {
-    return instance.usesRawMouse();
-  }
-
-  return instance.usesRawMouse === true;
+function pluginUsesInput(plugin: PluginManifest) {
+  return plugin.schema.some((setting) => setting.kind === "vector2");
 }
 
 export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
@@ -59,33 +37,24 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
   const mountedPluginsRef = useRef(new Map<string, MountedPlugin>());
   const environmentRef = useRef<PluginEnvironment>({ debug: false });
   const overlayAppearanceRef = useRef<OverlayAppearance>(defaultOverlayAppearance);
-  const motionRef = useRef<MotionFrame>(emptyMotion);
+  const inputRuntimeRef = useRef(new InputRuntime());
   const overlayVisibleRef = useRef(true);
-  const pendingRef = useRef<PendingMotion>({
-    count: 0,
-    deviceId: 0,
-    dx: 0,
-    dy: 0,
-    timestampMs: 0,
-  });
-  const rawMouseEnabledRef = useRef<boolean | null>(null);
+  const inputEnabledRef = useRef<boolean | null>(null);
   const requestFrameRef = useRef<() => void>(() => {});
   const toggleExpandedRef = useRef<() => void>(() => {});
 
-  const syncRawMouseSubscription = () => {
+  const syncInputSubscription = () => {
     const enabled =
       overlayVisibleRef.current &&
-      Array.from(mountedPluginsRef.current.values()).some((mountedPlugin) =>
-        pluginUsesRawMouse(mountedPlugin.instance),
-      );
+      Array.from(mountedPluginsRef.current.values()).some((mountedPlugin) => mountedPlugin.usesInput());
 
-    if (rawMouseEnabledRef.current === enabled) {
+    if (inputEnabledRef.current === enabled) {
       return;
     }
 
-    rawMouseEnabledRef.current = enabled;
-    runtime.setRawMouseEnabled(enabled).catch((error) => {
-      rawMouseEnabledRef.current = null;
+    inputEnabledRef.current = enabled;
+    runtime.setInputEnabled(enabled).catch((error) => {
+      inputEnabledRef.current = null;
       console.error(error);
     });
   };
@@ -138,6 +107,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
       if (!cancelled) {
         overlayVisibleRef.current = visible;
         setOverlayVisible(visible);
+        syncInputSubscription();
       }
     }).catch(console.error);
     runtime.listenPluginsChanged((payload) => setPlugins(payload.plugins)).then((unlisten) => {
@@ -146,6 +116,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     runtime.listenOverlayVisible((visible) => {
       overlayVisibleRef.current = visible;
       setOverlayVisible(visible);
+      syncInputSubscription();
     }).then((unlisten) => {
       unlistenOverlay = unlisten;
     }).catch(console.error);
@@ -166,7 +137,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
   useEffect(() => {
     let animationFrame = 0;
     let frameScheduled = false;
-    let unlistenRawMouse: (() => void) | undefined;
+    let unlistenInput: (() => void) | undefined;
 
     const requestFrame = () => {
       if (frameScheduled) {
@@ -180,40 +151,8 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     const draw = (time: number) => {
       frameScheduled = false;
       let shouldContinue = false;
-      const pending = pendingRef.current;
-
-      if (pending.count > 0) {
-        const previous = motionRef.current;
-        const dtMs = Math.max(1, previous.lastAt === 0 ? 16.67 : time - previous.lastAt);
-        const distance = Math.hypot(pending.dx, pending.dy);
-        const speed = distance / (dtMs / 1000);
-        const acceleration = (speed - previous.speed) / (dtMs / 1000);
-
-        motionRef.current = {
-          deviceId: pending.deviceId,
-          dx: pending.dx,
-          dy: pending.dy,
-          dtMs,
-          speed,
-          acceleration,
-          timestampMs: pending.timestampMs,
-          seq: previous.seq + 1,
-          lastAt: time,
-        };
-
-        pendingRef.current = {
-          count: 0,
-          deviceId: pending.deviceId,
-          dx: 0,
-          dy: 0,
-          timestampMs: pending.timestampMs,
-        };
-
-        shouldContinue = true;
-      }
 
       for (const mountedPlugin of mountedPluginsRef.current.values()) {
-        mountedPlugin.instance.updateMotion?.(motionRef.current);
         shouldContinue = mountedPlugin.instance.frame?.(time) === true || shouldContinue;
       }
 
@@ -223,25 +162,20 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
     };
 
     requestFrameRef.current = requestFrame;
-    runtime.listenRawMouse((payload) => {
-      const pending = pendingRef.current;
-      pending.deviceId = payload.deviceId;
-      pending.dx += payload.dx;
-      pending.dy += payload.dy;
-      pending.count += 1;
-      pending.timestampMs = payload.timestampMs;
+    runtime.listenInputVector2((payload) => {
+      inputRuntimeRef.current.pushVector2(payload);
       requestFrame();
     }).then((unlisten) => {
-      unlistenRawMouse = unlisten;
+      unlistenInput = unlisten;
     }).catch(console.error);
     requestFrame();
 
     return () => {
       cancelAnimationFrame(animationFrame);
       requestFrameRef.current = () => {};
-      runtime.setRawMouseEnabled(false).catch(console.error);
-      rawMouseEnabledRef.current = false;
-      unlistenRawMouse?.();
+      runtime.setInputEnabled(false).catch(console.error);
+      inputEnabledRef.current = false;
+      unlistenInput?.();
     };
   }, [runtime]);
 
@@ -287,7 +221,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
       const instance =
         module.mount(root, {
           env: () => environmentRef.current,
-          motion: () => motionRef.current,
+          input: inputRuntimeRef.current.createPluginApi(() => currentPlugin.settings),
           paint: createPluginPaintApi({
             appearance: overlayAppearanceRef,
             getSettings: () => currentPlugin.settings,
@@ -295,6 +229,9 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
             viewportElement: stage,
           }),
           plugin: () => currentPlugin,
+          render: {
+            request: () => requestFrameRef.current(),
+          },
           settings: () => currentPlugin.settings,
         }) ?? {};
 
@@ -307,8 +244,11 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
         setPlugin(nextPlugin) {
           currentPlugin = nextPlugin;
           instance.updatePlugin?.(currentPlugin);
-          syncRawMouseSubscription();
+          syncInputSubscription();
           requestFrameRef.current();
+        },
+        usesInput() {
+          return pluginUsesInput(currentPlugin);
         },
         destroy() {
           instance.destroy?.();
@@ -323,7 +263,7 @@ export function SiteOverlayPreview({ runtime }: { runtime: SettingsRuntime }) {
         stage.appendChild(mountedPlugin.root);
       }
     }
-    syncRawMouseSubscription();
+    syncInputSubscription();
     requestFrameRef.current();
   }, [plugins, overlayVisible]);
 

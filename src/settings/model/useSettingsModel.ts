@@ -9,6 +9,7 @@ import {
   type OverlayAppearance,
 } from "../../overlay/appearance";
 import type { PluginDirectoryPayload, PluginKind, PluginManifest } from "../../plugins/types";
+import type { InputProfilePayload } from "../../tauri/types";
 import type { Paint } from "../paint";
 import type { SettingsRuntime } from "../settingsRuntime";
 import type { PluginKindJump, SettingsSection } from "./settingsNavigation";
@@ -20,6 +21,7 @@ export type SettingsModel = {
   activeSection: SettingsSection;
   error: string | null;
   globalPaints: OverlayAppearance["paints"];
+  inputProfile: InputProfilePayload | null;
   overlayBusy: boolean;
   overlayOpacity: number;
   overlayVisible: boolean;
@@ -33,6 +35,7 @@ export type SettingsModel = {
   setOverlayOpacity: (opacity: number) => void;
   toggleOverlay: () => void;
   updateActivePaint: (paint: Paint) => void;
+  updateInputProfile: (profile: InputProfilePayload) => Promise<void>;
   updatePluginEnabled: (plugin: PluginManifest, enabled: boolean) => Promise<void>;
   updatePluginSetting: (plugin: PluginManifest, key: string, value: unknown) => Promise<void>;
 };
@@ -46,6 +49,7 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
   const [overlayVisible, setOverlayVisibleState] = useState(true);
   const [overlayBusy, setOverlayBusy] = useState(false);
   const [overlayAppearance, setOverlayAppearanceState] = useState<OverlayAppearance>(defaultOverlayAppearance);
+  const [inputProfile, setInputProfile] = useState<InputProfilePayload | null>(null);
 
   const refreshPlugins = async () => {
     try {
@@ -60,9 +64,18 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
     let unlistenPlugins: (() => void) | undefined;
     let unlistenOverlay: (() => void) | undefined;
     let unlistenAppearance: (() => void) | undefined;
+    let unlistenInputProfile: (() => void) | undefined;
     let cancelled = false;
 
     refreshPlugins();
+    runtime
+      .getInputProfile()
+      .then((profile) => {
+        if (!cancelled) {
+          setInputProfile(profile);
+        }
+      })
+      .catch((caught) => setError(String(caught)));
     runtime
       .getOverlayAppearance()
       .then((appearance) => {
@@ -77,6 +90,12 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
       .then(setOverlayVisibleState)
       .catch((caught) => setError(String(caught)));
 
+    runtime
+      .listenInputProfile(setInputProfile)
+      .then((unlisten) => {
+        unlistenInputProfile = unlisten;
+      })
+      .catch((caught) => setError(String(caught)));
     runtime
       .listenPluginsChanged(setPluginsPayload)
       .then((unlisten) => {
@@ -104,6 +123,7 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
       unlistenPlugins?.();
       unlistenOverlay?.();
       unlistenAppearance?.();
+      unlistenInputProfile?.();
     };
   }, [runtime]);
 
@@ -140,6 +160,7 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
     activeSection,
     error,
     globalPaints: overlayAppearance.paints,
+    inputProfile,
     overlayBusy,
     overlayOpacity: overlayAppearance.opacity,
     overlayVisible,
@@ -202,6 +223,10 @@ export function useSettingsModel(runtime: SettingsRuntime): SettingsModel {
           globalPaint.id === currentAppearance.activePaintId ? { ...globalPaint, paint } : globalPaint,
         ),
       }));
+    },
+    async updateInputProfile(profile) {
+      setError(null);
+      setInputProfile(await runtime.setInputProfile(profile));
     },
     async updatePluginEnabled(plugin, enabled) {
       setPluginsPayload(await runtime.setPluginEnabled(plugin.id, enabled));

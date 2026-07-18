@@ -2,18 +2,21 @@ import { Accordion, Card, Chip, Typography } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 
 import type { PluginManifest } from "../../plugins/types";
+import type { InputProfilePayload } from "../../tauri/types";
 import type { Paint } from "../paint";
 import { PluginAccordionItem } from "./PluginAccordionItem";
 import { pluginKindRoutes, pluginKindSectionId } from "./pluginKindNavigation";
 
 export function PluginKindSection({
   globalPaint,
+  inputProfile,
   kind,
   onUpdateEnabled,
   onUpdateSetting,
   plugins,
 }: {
   globalPaint: Paint;
+  inputProfile: InputProfilePayload | null;
   kind: PluginManifest["kind"];
   onUpdateEnabled: (plugin: PluginManifest, enabled: boolean) => void;
   onUpdateSetting: (plugin: PluginManifest, key: string, value: unknown) => void;
@@ -48,6 +51,7 @@ export function PluginKindSection({
             <PluginAccordionItem
               key={plugin.id}
               globalPaint={globalPaint}
+              inputProfile={inputProfile}
               plugin={plugin}
               onUpdateEnabled={onUpdateEnabled}
               onUpdateSetting={onUpdateSetting}

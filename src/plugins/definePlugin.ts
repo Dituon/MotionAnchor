@@ -108,6 +108,23 @@ export function enumSetting({
   };
 }
 
+export function vector2Setting({
+  defaultValue,
+  label,
+  visibleWhen,
+}: {
+  defaultValue: string;
+  label?: string;
+  visibleWhen?: PluginSettingVisibilityCondition;
+}): PluginSettingDefinition {
+  return {
+    defaultValue,
+    kind: "vector2",
+    label: label ?? "Input",
+    visibleWhen,
+  };
+}
+
 export function lengthSetting({
   defaultValue,
   label,

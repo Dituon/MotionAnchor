@@ -52,6 +52,7 @@ export function SettingsWorkspace({
       {model.activeSection === "plugins" && (
         <PluginSettingsPage
           globalPaint={model.activePaint}
+          inputProfile={model.inputProfile}
           payload={model.pluginsPayload}
           onUpdateEnabled={model.updatePluginEnabled}
           onUpdateSetting={model.updatePluginSetting}

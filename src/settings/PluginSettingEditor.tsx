@@ -10,10 +10,12 @@ import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { LengthUnit, LengthUnitConfig, LengthValue, PluginManifest } from "../plugins/types";
+import type { InputProfilePayload } from "../tauri/types";
 import { PaintInput, normalizePaint, type Paint } from "./paint";
 
 type PluginSettingEditorProps = {
   inheritedPaint: Paint;
+  inputProfile: InputProfilePayload | null;
   plugin: PluginManifest;
   setting: PluginManifest["schema"][number];
   onChange: (value: unknown) => void;
@@ -21,6 +23,7 @@ type PluginSettingEditorProps = {
 
 export function PluginSettingEditor({
   inheritedPaint,
+  inputProfile,
   plugin,
   setting,
   onChange,
@@ -81,6 +84,42 @@ export function PluginSettingEditor({
         value={selectedValue}
         onChange={onChange}
       />
+    );
+  }
+
+  if (setting.kind === "vector2") {
+    const options = inputProfile?.vector2 ?? [];
+    const stringValue = typeof value === "string" ? value : "";
+    const selectedValue = options.some((option) => option.id === stringValue)
+      ? stringValue
+      : (options[0]?.id ?? "");
+
+    return (
+      <Select
+        fullWidth
+        value={selectedValue}
+        variant="secondary"
+        onChange={(nextValue) => {
+          if (typeof nextValue === "string") {
+            onChange(nextValue);
+          }
+        }}
+      >
+        <Select.Trigger>
+          <Select.Value />
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {options.map((option) => (
+              <ListBox.Item key={option.id} id={option.id} textValue={option.label}>
+                {option.label}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
     );
   }
 

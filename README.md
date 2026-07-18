@@ -90,15 +90,27 @@ export default definePlugin({
 
 ### Lifecycle
 
-`mount(root, api)` 会在插件启用时被调用。`root` 是分配给插件的 DOM 容器，`api` 用于读取当前插件信息、配置和鼠标运动数据。
+`mount(root, api)` 会在插件启用时被调用。`root` 是分配给插件的 DOM 容器，`api` 用于读取当前插件信息、配置、全局输入和渲染工具。
 
 ```ts
 type PluginApi = {
   env: () => PluginEnvironment;
-  motion: () => MotionFrame;
+  input: PluginInputApi;
   paint: PluginPaintApi;
   plugin: () => PluginManifest;
+  render: PluginRenderApi;
   settings: () => Record<string, unknown>;
+};
+
+type PluginInputApi = {
+  vector2: {
+    get: (settingKey: string) => { x: number; y: number };
+    on: (settingKey: string, handler: (value: { x: number; y: number }) => void) => () => void;
+  };
+};
+
+type PluginRenderApi = {
+  request: () => void;
 };
 
 type PaintRect = { x: number; y: number; width: number; height: number };
@@ -114,30 +126,39 @@ type PluginPaintApi = {
 };
 
 type PluginInstance = {
-  usesRawMouse?: boolean | (() => boolean);
   updatePlugin?: (plugin: PluginManifest) => void;
-  updateMotion?: (motion: MotionFrame) => void;
   frame?: (timeMs: number) => boolean | void;
   destroy?: () => void;
 };
 ```
 
-### RawMouse
+### Input
 
-Raw Mouse 当前只在 Windows 上可用。插件声明 `usesRawMouse: true` 后，可通过 `api.motion()` 获取聚合后的运动帧：
+输入源由全局 input profile 定义，插件通过 `vector2Setting` 声明自己需要一个二维输入选择项。设置值是全局输入源 ID，例如 `look` 或 `move`。
 
 ```ts
-type MotionFrame = {
-  deviceId: number;
-  dx: number;
-  dy: number; // 本帧累计的原始鼠标位移
-  dtMs: number;
-  speed: number;
-  acceleration: number; // 速度变化率
-  timestampMs: number;
-  seq: number; // 运动帧序号
-  lastAt: number; // 最近一次运动帧写入时的 performance.now()
-};
+import { vector2Setting } from "../../definePlugin";
+
+settings: {
+  input: vector2Setting({ label: "Input", defaultValue: "look" }),
+}
+
+mount(root, api) {
+  const unlisten = api.input.vector2.on("input", ({ x, y }) => {
+    // "input" 是插件 settings 的 key；用户可把它绑定到全局 look/move 等输入源。
+    api.render.request();
+  });
+
+  return {
+    frame(timeMs) {
+      // 推进动画和绘制。返回 true 表示下一帧继续渲染。
+      return false;
+    },
+    destroy() {
+      unlisten();
+    },
+  };
+}
 ```
 
 ### Register

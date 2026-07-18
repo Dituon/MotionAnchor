@@ -3,14 +3,14 @@ import { Accordion, Chip, Typography } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 
 import type { PluginEnvironment } from "../plugins/environment";
-import type { RawMouseSettingsPayload, RawMouseStatusPayload } from "../tauri/types";
+import type { InputProfilePayload, InputStatusPayload } from "../tauri/types";
+import { InputSettingsPanel } from "./InputSettingsPanel";
 import { PluginEnvironmentPanel } from "./PluginEnvironmentPanel";
-import { RawMouseSettingsPanel } from "./RawMouseSettingsPanel";
 import type { SettingsRuntime } from "./settingsRuntime";
 
-type RawInputChipColor = "default" | "success" | "warning" | "danger";
+type InputChipColor = "default" | "success" | "warning" | "danger";
 
-function getRawInputStatusColor(status: string, enabled: boolean): RawInputChipColor {
+function getInputStatusColor(status: string, enabled: boolean): InputChipColor {
   if (status === "error" || status === "unsupported") {
     return "danger";
   }
@@ -35,17 +35,18 @@ export function DiagnosticsPanel({
 }) {
   const { t } = useTranslation();
   const [pluginEnvironment, setPluginEnvironment] = useState<PluginEnvironment>({ debug: false });
-  const [rawMouseEnabled, setRawMouseEnabled] = useState(false);
-  const [rawMouseSettings, setRawMouseSettings] = useState<RawMouseSettingsPayload | null>(null);
-  const [rawMouseStatus, setRawMouseStatus] = useState<RawMouseStatusPayload | null>(null);
-  const rawInputStatus = rawMouseStatus?.status ?? (rawMouseEnabled ? "listening" : "stopped");
-  const rawInputStatusLabel = t(`diagnostics.rawInputStatus.${rawInputStatus}`, {
-    defaultValue: rawInputStatus,
+  const [inputEnabled, setInputEnabled] = useState(false);
+  const [inputProfile, setInputProfile] = useState<InputProfilePayload | null>(null);
+  const [inputStatus, setInputStatus] = useState<InputStatusPayload | null>(null);
+  const runtimeStatus = inputStatus?.status ?? (inputEnabled ? "listening" : "stopped");
+  const runtimeStatusLabel = t(`diagnostics.inputStatus.${runtimeStatus}`, {
+    defaultValue: runtimeStatus,
   });
 
   useEffect(() => {
     let cancelled = false;
-    let unlistenRawMouseStatus: (() => void) | undefined;
+    let unlistenInputProfile: (() => void) | undefined;
+    let unlistenInputStatus: (() => void) | undefined;
 
     runtime
       .getPluginEnvironment()
@@ -56,39 +57,46 @@ export function DiagnosticsPanel({
       })
       .catch((caught) => onError(String(caught)));
     runtime
-      .getRawMouseEnabled()
+      .getInputEnabled()
       .then((enabled) => {
         if (!cancelled) {
-          setRawMouseEnabled(enabled);
+          setInputEnabled(enabled);
         }
       })
       .catch((caught) => onError(String(caught)));
     runtime
-      .getRawMouseSettings()
-      .then((settings) => {
+      .getInputProfile()
+      .then((profile) => {
         if (!cancelled) {
-          setRawMouseSettings(settings);
+          setInputProfile(profile);
         }
       })
       .catch((caught) => onError(String(caught)));
     runtime
-      .listenRawMouseStatus((status) => {
-        setRawMouseStatus(status);
+      .listenInputProfile(setInputProfile)
+      .then((unlisten) => {
+        unlistenInputProfile = unlisten;
+      })
+      .catch((caught) => onError(String(caught)));
+    runtime
+      .listenInputStatus((status) => {
+        setInputStatus(status);
 
         if (status.status === "listening") {
-          setRawMouseEnabled(true);
+          setInputEnabled(true);
         } else if (status.status === "stopped" || status.status === "error" || status.status === "unsupported") {
-          setRawMouseEnabled(false);
+          setInputEnabled(false);
         }
       })
       .then((unlisten) => {
-        unlistenRawMouseStatus = unlisten;
+        unlistenInputStatus = unlisten;
       })
       .catch((caught) => onError(String(caught)));
 
     return () => {
       cancelled = true;
-      unlistenRawMouseStatus?.();
+      unlistenInputProfile?.();
+      unlistenInputStatus?.();
     };
   }, [onError, runtime]);
 
@@ -101,10 +109,10 @@ export function DiagnosticsPanel({
     }
   };
 
-  const updateRawMouseMaxRefreshRate = async (maxRefreshRateHz: number | null) => {
+  const updateInputProfile = async (profile: InputProfilePayload) => {
     try {
       onError(null);
-      setRawMouseSettings(await runtime.setRawMouseSettings(maxRefreshRateHz));
+      setInputProfile(await runtime.setInputProfile(profile));
     } catch (caught) {
       onError(String(caught));
     }
@@ -117,16 +125,16 @@ export function DiagnosticsPanel({
           <Accordion.Trigger className="flex w-full items-center gap-2 text-left">
             <span className="min-w-0 flex-1">
               <span className="block font-medium">{t("nav.diagnostics")}</span>
-              <span className="block text-xs text-muted">{t("diagnostics.rawInputDescription")}</span>
+              <span className="block text-xs text-muted">{t("diagnostics.inputDescription")}</span>
             </span>
             <Chip
               className="max-w-[11rem] shrink-0"
-              color={getRawInputStatusColor(rawInputStatus, rawMouseEnabled)}
+              color={getInputStatusColor(runtimeStatus, inputEnabled)}
               size="sm"
               variant="primary"
             >
               <Chip.Label className="truncate">
-                {t("diagnostics.rawInputLabel")}: {rawInputStatusLabel}
+                {t("diagnostics.inputLabel")}: {runtimeStatusLabel}
               </Chip.Label>
             </Chip>
             <Accordion.Indicator />
@@ -134,16 +142,13 @@ export function DiagnosticsPanel({
         </Accordion.Heading>
         <Accordion.Panel>
           <Accordion.Body className="grid gap-3 px-2 pb-2 pt-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]">
-            {rawMouseStatus?.message && (
+            {inputStatus?.message && (
               <Typography.Paragraph className="text-xs text-muted [grid-column:1/-1]">
-                {rawMouseStatus.message}
+                {inputStatus.message}
               </Typography.Paragraph>
             )}
             <PluginEnvironmentPanel environment={pluginEnvironment} onEnvironmentChange={updatePluginEnvironment} />
-            <RawMouseSettingsPanel
-              settings={rawMouseSettings}
-              onMaxRefreshRateChange={updateRawMouseMaxRefreshRate}
-            />
+            <InputSettingsPanel profile={inputProfile} onProfileChange={updateInputProfile} />
           </Accordion.Body>
         </Accordion.Panel>
       </Accordion.Item>

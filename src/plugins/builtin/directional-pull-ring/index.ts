@@ -1,5 +1,5 @@
 import { animeRuntime } from "../../../animation";
-import { definePlugin, numberSetting, paintSetting as paintSettingDefinition, pxSetting } from "../../definePlugin";
+import { definePlugin, numberSetting, paintSetting as paintSettingDefinition, pxSetting, vector2Setting } from "../../definePlugin";
 import { clamp01, numberSetting as numberSettingValue } from "../../runtimeSettings";
 import { PluginKind } from "../../types";
 
@@ -23,8 +23,9 @@ export default definePlugin({
   kind: PluginKind.Crosshair,
   enabledByDefault: true,
   order: 10,
-  description: "Canvas ring that stretches in the raw mouse direction.",
+  description: "Canvas ring that stretches in the selected input direction.",
   settings: {
+    input: vector2Setting({ defaultValue: "look", label: "Input" }),
     color: paintSettingDefinition({ label: "Color" }),
     radius: pxSetting({ defaultValue: 36, label: "Radius", min: 8, max: 120, step: 1 }),
     stroke: pxSetting({ defaultValue: 8, label: "Stroke", min: 1, max: 40, step: 1 }),
@@ -43,9 +44,13 @@ export default definePlugin({
       targetAngle: 0,
       smoothedDx: 0,
       smoothedDy: 0,
+      pendingX: 0,
+      pendingY: 0,
+      inputSeq: 0,
       virtualX: 0,
       virtualY: 0,
       lastSeq: -1,
+      lastInputAt: 0,
       lastFrameTime: 0,
       fps: 0,
       canvasDpr: 1,
@@ -85,8 +90,15 @@ export default definePlugin({
     window.addEventListener("resize", resize);
     applyCanvasSize();
 
+    const unlistenInput = api.input.vector2.on("input", (input) => {
+      state.pendingX += input.x;
+      state.pendingY += input.y;
+      state.inputSeq += 1;
+      state.lastInputAt = performance.now();
+      api.render.request();
+    });
+
     return {
-      usesRawMouse: true,
       frame(timeMs) {
         if (!ctx) {
           return false;
@@ -94,7 +106,6 @@ export default definePlugin({
 
         const env = api.env();
         const settings = api.settings();
-        const motion = api.motion();
         const dpr = state.canvasDpr;
         const width = state.canvasCssSize;
         const height = state.canvasCssSize;
@@ -114,14 +125,14 @@ export default definePlugin({
         const virtualScale = 1.25 * sensitivityScale;
         const virtualFriction = lerp(0.76, 0.9, smoothness);
         const virtualMaxDistance = 96;
-        const fastSpeed = 2600 / sensitivityScale;
+        const fastInput = 24 / sensitivityScale;
         const speedCurve = lerp(1.6, 1.15, clamp01((sensitivityScale - 0.2) / 2.8));
         const slowPull = deformation * 0.08 * sensitivityScale;
         const driftInfluence = 0.1 + sensitivityScale * 0.025;
         const decay = lerp(0.7, 0.9, smoothness);
         const vectorEase = animeRuntime.eases.outExpo(Math.min(1, Math.max(0.001, response)));
         const angleEase = animeRuntime.eases.outExpo(Math.min(1, Math.max(0.001, angleResponse)));
-        const hasFreshMotion = motion.seq !== state.lastSeq;
+        const hasFreshInput = state.inputSeq !== state.lastSeq;
 
         if (state.lastFrameTime > 0) {
           const instantFps = 1000 / Math.max(1, timeMs - state.lastFrameTime);
@@ -129,13 +140,18 @@ export default definePlugin({
         }
         state.lastFrameTime = timeMs;
 
-        if (hasFreshMotion) {
-          state.lastSeq = motion.seq;
-          state.smoothedDx = animeRuntime.utils.lerp(state.smoothedDx, motion.dx, vectorEase);
-          state.smoothedDy = animeRuntime.utils.lerp(state.smoothedDy, motion.dy, vectorEase);
+        if (hasFreshInput) {
+          const inputX = state.pendingX;
+          const inputY = state.pendingY;
+
+          state.pendingX = 0;
+          state.pendingY = 0;
+          state.lastSeq = state.inputSeq;
+          state.smoothedDx = animeRuntime.utils.lerp(state.smoothedDx, inputX, vectorEase);
+          state.smoothedDy = animeRuntime.utils.lerp(state.smoothedDy, inputY, vectorEase);
           state.virtualX += state.smoothedDx * virtualScale;
           state.virtualY += state.smoothedDy * virtualScale;
-        } else if (performance.now() - motion.lastAt > 35) {
+        } else if (performance.now() - state.lastInputAt > 35) {
           state.smoothedDx = animeRuntime.utils.lerp(state.smoothedDx, 0, vectorEase * 0.45);
           state.smoothedDy = animeRuntime.utils.lerp(state.smoothedDy, 0, vectorEase * 0.45);
         }
@@ -153,7 +169,8 @@ export default definePlugin({
         const limitedDistance = Math.min(Math.hypot(state.virtualX, state.virtualY), virtualMaxDistance);
         if (limitedDistance > directionDeadzone) {
           state.targetAngle = Math.atan2(state.virtualY, state.virtualX);
-          const speed01 = clamp01(Math.max(0, motion.speed) / Math.max(1, fastSpeed));
+          const inputStrength = Math.hypot(state.smoothedDx, state.smoothedDy);
+          const speed01 = clamp01(inputStrength / Math.max(1, fastInput));
           const speedStrength = Math.pow(speed01, Math.max(0.1, speedCurve));
           const drift01 = clamp01(
             (limitedDistance - directionDeadzone) / Math.max(1, virtualMaxDistance - directionDeadzone),
@@ -168,7 +185,7 @@ export default definePlugin({
 
         state.angle = lerpAngle(state.angle, state.targetAngle, angleEase * 0.35);
         state.currentPull += (state.targetPull - state.currentPull) * response;
-        state.targetPull *= performance.now() - motion.lastAt > 35 ? decay : 0.9;
+        state.targetPull *= performance.now() - state.lastInputAt > 35 ? decay : 0.9;
 
         const cx = width / 2;
         const cy = height / 2;
@@ -207,10 +224,8 @@ export default definePlugin({
         if (env.debug) {
           const lines = [
             `debug: on`,
-            `seq: ${motion.seq}`,
-            `device: ${motion.deviceId}`,
-            `dx/dy: ${motion.dx} / ${motion.dy}`,
-            `speed: ${Math.round(motion.speed)}`,
+            `seq: ${state.inputSeq}`,
+            `input: ${state.smoothedDx.toFixed(2)} / ${state.smoothedDy.toFixed(2)}`,
             `fps: ${Math.round(state.fps)}`,
             `pull: ${state.currentPull.toFixed(2)}`,
           ];
@@ -236,7 +251,7 @@ export default definePlugin({
 
         return (
           env.debug ||
-          hasFreshMotion ||
+          hasFreshInput ||
           Math.abs(state.currentPull) > 0.08 ||
           Math.abs(state.targetPull) > 0.08 ||
           Math.hypot(state.virtualX, state.virtualY) > 0.08 ||
@@ -247,6 +262,7 @@ export default definePlugin({
         applyCanvasSize();
       },
       destroy() {
+        unlistenInput();
         window.removeEventListener("resize", resize);
         root.replaceChildren();
       },

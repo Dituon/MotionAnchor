@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { createPluginsPayload } from "../plugins/registry";
 import type { PluginDirectoryPayload, PluginOverridesPayload } from "../plugins/types";
-import type { RawMouseSettingsPayload } from "./types";
+import type { InputProfilePayload } from "./types";
 
 export async function loadPluginOverrides() {
   return invoke<PluginOverridesPayload>("load_plugin_overrides");
@@ -20,22 +20,20 @@ export function setOverlayVisible(visible: boolean) {
   return invoke<boolean>("set_overlay_visible", { visible });
 }
 
-export function setRawMouseEnabled(enabled: boolean) {
-  return invoke<boolean>("set_raw_mouse_enabled", { enabled });
+export function setInputEnabled(enabled: boolean) {
+  return invoke<boolean>("set_input_enabled", { enabled });
 }
 
-export function getRawMouseEnabled() {
-  return invoke<boolean>("get_raw_mouse_enabled");
+export function getInputEnabled() {
+  return invoke<boolean>("get_input_enabled");
 }
 
-export function getRawMouseSettings() {
-  return invoke<RawMouseSettingsPayload>("get_raw_mouse_settings");
+export function getInputProfile() {
+  return invoke<InputProfilePayload>("get_input_profile");
 }
 
-export function setRawMouseSettings(maxRefreshRateHz: number | null) {
-  return invoke<RawMouseSettingsPayload>("set_raw_mouse_settings", {
-    maxRefreshRateHz,
-  });
+export function setInputProfile(profile: InputProfilePayload) {
+  return invoke<InputProfilePayload>("set_input_profile", { profile });
 }
 
 export async function setPluginEnabled(id: string, enabled: boolean): Promise<PluginDirectoryPayload> {

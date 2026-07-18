@@ -57,7 +57,7 @@ export type PluginSettingVisibilityCondition = {
 export type PluginSettingSchema = {
   key: string;
   label: string;
-  kind: "enum" | "length" | "number" | "paint" | "px" | string;
+  kind: "enum" | "length" | "number" | "paint" | "px" | "vector2" | string;
   min?: number;
   max?: number;
   step?: number;
@@ -104,19 +104,9 @@ export type PluginOverridesPayload = {
   plugins: Record<string, PluginOverride>;
 };
 
-export type RawMousePayload = {
-  deviceId: number;
-  dx: number;
-  dy: number;
-  dtMs: number;
-  speed: number;
-  acceleration: number;
-  timestampMs: number;
-};
-
-export type MotionFrame = RawMousePayload & {
-  seq: number;
-  lastAt: number;
+export type InputVector2 = {
+  x: number;
+  y: number;
 };
 
 export type PluginEnvironment = {
@@ -125,16 +115,26 @@ export type PluginEnvironment = {
 
 export type PluginApi = {
   env: () => PluginEnvironment;
-  motion: () => MotionFrame;
+  input: PluginInputApi;
   paint: PluginPaintApi;
   plugin: () => PluginManifest;
+  render: PluginRenderApi;
   settings: () => Record<string, unknown>;
 };
 
+export type PluginInputApi = {
+  vector2: {
+    get: (settingKey: string) => InputVector2;
+    on: (settingKey: string, handler: (value: InputVector2) => void) => () => void;
+  };
+};
+
+export type PluginRenderApi = {
+  request: () => void;
+};
+
 export type PluginInstance = {
-  usesRawMouse?: boolean | (() => boolean);
   updatePlugin?: (plugin: PluginManifest) => void;
-  updateMotion?: (motion: MotionFrame) => void;
   frame?: (timeMs: number) => boolean | void;
   destroy?: () => void;
 };

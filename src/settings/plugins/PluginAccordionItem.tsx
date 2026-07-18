@@ -2,16 +2,19 @@ import { Accordion, Label, Separator, ToggleButton, Typography } from "@heroui/r
 import { useTranslation } from "react-i18next";
 
 import type { PluginManifest } from "../../plugins/types";
+import type { InputProfilePayload } from "../../tauri/types";
 import type { Paint } from "../paint";
 import { PluginSettingEditor } from "../PluginSettingEditor";
 
 export function PluginAccordionItem({
   globalPaint,
+  inputProfile,
   onUpdateEnabled,
   onUpdateSetting,
   plugin,
 }: {
   globalPaint: Paint;
+  inputProfile: InputProfilePayload | null;
   onUpdateEnabled: (plugin: PluginManifest, enabled: boolean) => void;
   onUpdateSetting: (plugin: PluginManifest, key: string, value: unknown) => void;
   plugin: PluginManifest;
@@ -54,6 +57,7 @@ export function PluginAccordionItem({
                 <Label>{t(`pluginSettings.${setting.key}`, { defaultValue: setting.label })}</Label>
                 <PluginSettingEditor
                   inheritedPaint={globalPaint}
+                  inputProfile={inputProfile}
                   plugin={plugin}
                   setting={setting}
                   onChange={(value) => onUpdateSetting(plugin, setting.key, value)}
