@@ -1,4 +1,4 @@
-import { defaultSolidPaint, normalizePaint, paintToCss } from "../settings/paint/paintUtils";
+import { defaultSolidPaint, normalizeColorString, normalizePaint, paintToCss } from "../settings/paint/paintUtils";
 import type { GradientStop, Paint } from "../settings/paint/types";
 import { getActiveOverlayPaint, type OverlayAppearance } from "../overlay/appearance";
 import type { PaintCoordinateSpace, PaintRect, PluginCanvasPaintOptions, PluginPaintApi } from "./types";
@@ -6,6 +6,11 @@ import type { PaintCoordinateSpace, PaintRect, PluginCanvasPaintOptions, PluginP
 export function numberSetting(settings: Record<string, unknown>, key: string, fallback: number) {
   const value = settings[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+export function booleanSetting(settings: Record<string, unknown>, key: string, fallback: boolean) {
+  const value = settings[key];
+  return typeof value === "boolean" ? value : fallback;
 }
 
 export function lengthSetting(
@@ -141,6 +146,12 @@ function isLengthUnit(value: unknown) {
 }
 
 function parsePaintValue(value: unknown): Paint | null {
+  if (typeof value === "string") {
+    const color = normalizeColorString(value);
+
+    return color ? { type: "solid", color } : null;
+  }
+
   if (typeof value === "object" && value !== null && "type" in value) {
     return value as Paint;
   }

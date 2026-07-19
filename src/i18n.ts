@@ -1,6 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+import { pluginI18nResources } from "./plugins/registry";
+
 export const resources = {
   en: {
     translation: {
@@ -95,6 +97,7 @@ export const resources = {
       },
       pluginSettings: {
         color: "Color",
+        Length: "Length",
         centerFadeSize: "Center fade edge",
         centerHiddenRadius: "Center hidden radius",
         deformation: "Deformation",
@@ -295,6 +298,7 @@ export const resources = {
       },
       pluginSettings: {
         color: "颜色",
+        Length: "长度",
         centerFadeSize: "中心渐变边缘",
         centerHiddenRadius: "中心隐藏半径",
         deformation: "形变量",
@@ -420,5 +424,11 @@ i18n.use(initReactI18next).init({
   lng: "en",
   resources,
 });
+
+for (const resource of pluginI18nResources) {
+  for (const [language, bundle] of Object.entries(resource)) {
+    i18n.addResourceBundle(language, "translation", bundle, true, true);
+  }
+}
 
 export default i18n;

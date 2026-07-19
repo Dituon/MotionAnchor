@@ -1,13 +1,20 @@
 import directionalPullRing from "./builtin/directional-pull-ring";
+import classicCrosshair from "./builtin/classic-crosshair";
 import fullscreenBorder from "./builtin/fullscreen-border";
 import fullscreenGrid from "./builtin/fullscreen-grid";
 import fullscreenReferenceLines from "./builtin/fullscreen-reference-lines";
 import staticRing from "./builtin/static-ring";
 import { createPluginDirectoryPayload } from "./definePlugin";
-import type { PluginModule, PluginOverridesPayload, PluginRegistration } from "./types";
+import type {
+  PluginI18nResource,
+  PluginModule,
+  PluginOverridesPayload,
+  PluginRegistration,
+} from "./types";
 
 export const registeredPlugins = [
   directionalPullRing,
+  classicCrosshair,
   staticRing,
   fullscreenReferenceLines,
   fullscreenGrid,
@@ -15,6 +22,10 @@ export const registeredPlugins = [
 ] satisfies PluginRegistration[];
 
 export const registeredPluginIds = registeredPlugins.map((plugin) => plugin.id);
+
+export const pluginI18nResources = registeredPlugins
+  .map((plugin) => plugin.i18n)
+  .filter((resource): resource is PluginI18nResource => Boolean(resource));
 
 export const pluginModules: Record<string, PluginModule> = Object.fromEntries(
   registeredPlugins.map((plugin) => [plugin.id, { mount: plugin.mount }]),

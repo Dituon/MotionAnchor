@@ -57,7 +57,7 @@ export type PluginSettingVisibilityCondition = {
 export type PluginSettingSchema = {
   key: string;
   label: string;
-  kind: "enum" | "length" | "number" | "paint" | "px" | "vector2" | string;
+  kind: "boolean" | "enum" | "length" | "number" | "paint" | "px" | "vector2" | string;
   min?: number;
   max?: number;
   step?: number;
@@ -147,6 +147,13 @@ export type PluginSettingDefinition = Omit<PluginSettingSchema, "key"> & {
   defaultValue: unknown;
 };
 
+export type PluginI18nLocaleResource = {
+  pluginSettings?: Record<string, unknown>;
+  plugins?: Record<string, { description: string; name: string }>;
+};
+
+export type PluginI18nResource = Record<string, PluginI18nLocaleResource>;
+
 export type PluginPaintSettingDefinition = Omit<PluginSettingDefinition, "defaultValue" | "kind"> & {
   defaultValue: Paint | null;
   kind: "paint";
@@ -159,6 +166,7 @@ export type PluginRegistration = {
   enabledByDefault: boolean;
   order: number;
   description: string;
+  i18n?: PluginI18nResource;
   settings: Record<string, PluginSettingDefinition>;
   mount: PluginModule["mount"];
 };

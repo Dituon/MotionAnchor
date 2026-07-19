@@ -4,6 +4,7 @@ import {
   ListBox,
   Select,
   Slider,
+  Switch,
   TextField,
 } from "@heroui/react";
 import { RotateCcw } from "lucide-react";
@@ -54,6 +55,23 @@ export function PluginSettingEditor({
           {t("pluginSettings.followGlobal")}
         </Button>
       </div>
+    );
+  }
+
+  if (setting.kind === "boolean") {
+    return (
+      <Switch
+        size="lg"
+        isSelected={typeof value === "boolean" ? value : false}
+        onChange={onChange}
+      >
+        <Switch.Content className="flex w-full items-center justify-between gap-3">
+          <span className="min-w-0 flex-1 truncate">{t(value ? "common.enabled" : "common.disabled")}</span>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
     );
   }
 

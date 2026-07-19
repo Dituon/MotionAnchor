@@ -10,6 +10,7 @@ import type {
   PluginSettingDefinition,
   PluginSettingVisibilityCondition,
 } from "./types";
+import { defaultSolidPaint, normalizeColorString } from "../settings/paint/paintUtils";
 import type { Paint } from "../settings/paint/types";
 
 export function definePlugin(plugin: PluginRegistration) {
@@ -22,13 +23,21 @@ export function paintSetting({
   solidOnly = false,
   visibleWhen,
 }: {
-  defaultValue?: Paint | null;
+  defaultValue?: Paint | string | null;
   label?: string;
   solidOnly?: boolean;
   visibleWhen?: PluginSettingVisibilityCondition;
 } = {}): PluginPaintSettingDefinition {
+  const normalizedDefaultValue =
+    typeof defaultValue === "string"
+      ? {
+          type: "solid" as const,
+          color: normalizeColorString(defaultValue) || defaultSolidPaint.color,
+        }
+      : defaultValue;
+
   return {
-    defaultValue,
+    defaultValue: normalizedDefaultValue,
     kind: "paint",
     label: label ?? "Paint",
     solidOnly,
@@ -104,6 +113,23 @@ export function enumSetting({
     kind: "enum",
     label: label ?? "Option",
     options,
+    visibleWhen,
+  };
+}
+
+export function booleanSetting({
+  defaultValue,
+  label,
+  visibleWhen,
+}: {
+  defaultValue: boolean;
+  label?: string;
+  visibleWhen?: PluginSettingVisibilityCondition;
+}): PluginSettingDefinition {
+  return {
+    defaultValue,
+    kind: "boolean",
+    label: label ?? "Enabled",
     visibleWhen,
   };
 }

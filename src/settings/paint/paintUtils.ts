@@ -215,6 +215,16 @@ export function gradientBarCss(paint: Paint): string {
 export function normalizeHexColor(color: unknown): HexColor | "" {
   const normalized = typeof color === "string" ? color.trim().replace(/^#?/, "#").toLowerCase() : "";
 
+  if (/^#[0-9a-f]{3,4}$/.test(normalized)) {
+    const hex = normalized.slice(1);
+    const expanded = hex
+      .split("")
+      .map((part) => part + part)
+      .join("");
+
+    return `#${expanded}` as HexColor;
+  }
+
   return /^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(normalized) ? (normalized as HexColor) : "";
 }
 
