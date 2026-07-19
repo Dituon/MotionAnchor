@@ -23,7 +23,7 @@ impl Default for InputProfile {
                             device_id: None,
                             stick: Stick::Right,
                             deadzone: 0.15,
-                            scale: 24.0,
+                            scale: 32.0,
                             invert_x: false,
                             invert_y: false,
                         },
@@ -62,7 +62,11 @@ pub struct Vector2InputBinding {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum Vector2InputSource {
     MouseMotion {
         scale: f64,

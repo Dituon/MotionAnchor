@@ -200,7 +200,8 @@ struct InputAccumulator {
     mouse_dx: f64,
     mouse_dy: f64,
     pressed_keys: HashSet<multiinput::KeyId>,
-    sticks: HashMap<usize, GamepadAxes>,
+    xinput_sticks: HashMap<usize, GamepadAxes>,
+    rawinput_sticks: HashMap<usize, GamepadAxes>,
     active_ids: HashSet<String>,
 }
 
@@ -242,17 +243,34 @@ impl InputAccumulator {
     fn stick(&self, device_id: Option<usize>, stick: Stick) -> (f64, f64) {
         if let Some(device_id) = device_id {
             return self
-                .sticks
+                .xinput_sticks
                 .get(&device_id)
+                .or_else(|| self.rawinput_sticks.get(&device_id))
                 .map(|axes| axes.stick(stick))
                 .unwrap_or_default();
         }
 
-        self.sticks
-            .values()
-            .map(|axes| axes.stick(stick))
-            .find(|(x, y)| *x != 0.0 || *y != 0.0)
+        first_active_stick(&self.xinput_sticks, stick)
+            .or_else(|| first_active_stick(&self.rawinput_sticks, stick))
             .unwrap_or_default()
+    }
+
+    fn clear_xinput_stick(&mut self, device_id: usize) {
+        self.xinput_sticks.remove(&device_id);
+    }
+
+    fn ensure_xinput_stick(&mut self, device_id: usize) {
+        self.xinput_sticks.entry(device_id).or_default();
+    }
+
+    fn update_xinput_axis(&mut self, device_id: usize, axis: gilrs::Axis, value: f64) {
+        let axes = self.xinput_sticks.entry(device_id).or_default();
+        axes.update_gilrs_axis(axis, value);
+    }
+
+    fn update_rawinput_axis(&mut self, device_id: usize, axis: multiinput::Axis, value: f64) {
+        let axes = self.rawinput_sticks.entry(device_id).or_default();
+        axes.update_multiinput_axis(axis, value);
     }
 }
 
@@ -264,6 +282,34 @@ impl GamepadAxes {
             Stick::Right => (self.right_x, self.right_y),
         }
     }
+
+    fn update_gilrs_axis(&mut self, axis: gilrs::Axis, value: f64) {
+        match axis {
+            gilrs::Axis::LeftStickX => self.left_x = value,
+            gilrs::Axis::LeftStickY => self.left_y = -value,
+            gilrs::Axis::RightStickX => self.right_x = value,
+            gilrs::Axis::RightStickY => self.right_y = -value,
+            _ => {}
+        }
+    }
+
+    fn update_multiinput_axis(&mut self, axis: multiinput::Axis, value: f64) {
+        match axis {
+            multiinput::Axis::X => self.left_x = value,
+            multiinput::Axis::Y => self.left_y = value,
+            multiinput::Axis::RX => self.right_x = value,
+            multiinput::Axis::RY => self.right_y = value,
+            _ => {}
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn first_active_stick(sticks: &HashMap<usize, GamepadAxes>, stick: Stick) -> Option<(f64, f64)> {
+    sticks
+        .values()
+        .map(|axes| axes.stick(stick))
+        .find(|(x, y)| *x != 0.0 || *y != 0.0)
 }
 
 #[cfg(target_os = "windows")]
@@ -273,7 +319,8 @@ fn run_windows_input_stream(
     stop: Arc<AtomicBool>,
     init_tx: mpsc::Sender<Result<(), String>>,
 ) {
-    use multiinput::{Axis, DeviceType, KeyId, RawEvent, RawInputManager, State, XInputInclude};
+    use gilrs::{EventType as GamepadEventType, Gilrs};
+    use multiinput::{DeviceType, KeyId, RawEvent, RawInputManager, State, XInputInclude};
 
     let mut manager = match RawInputManager::new() {
         Ok(manager) => manager,
@@ -287,18 +334,34 @@ fn run_windows_input_stream(
 
     manager.register_devices(DeviceType::Mice);
     manager.register_devices(DeviceType::Keyboards);
-    manager.register_devices(DeviceType::Joysticks(XInputInclude::True));
+    manager.register_devices(DeviceType::Joysticks(XInputInclude::False));
 
     let device_stats = manager.get_device_stats();
+    let mut gamepads = match Gilrs::new() {
+        Ok(gamepads) => Some(gamepads),
+        Err(error) => {
+            emit_input_status(
+                &app,
+                "warning",
+                format!("Gamepad input unavailable: {error}"),
+            );
+            None
+        }
+    };
+    let gamepad_count = gamepads
+        .as_ref()
+        .map(|gamepads| gamepads.gamepads().count())
+        .unwrap_or_default();
     let _ = init_tx.send(Ok(()));
 
     emit_input_status(
         &app,
         "listening",
         format!(
-            "Input stream started. Mice: {}, keyboards: {}, gamepads: {}",
+            "Input stream started. Mice: {}, keyboards: {}, XInput gamepads: {}, Raw Input fallback gamepads: {}",
             device_stats.number_of_mice,
             device_stats.number_of_keyboards,
+            gamepad_count,
             device_stats.number_of_joysticks
         ),
     );
@@ -327,17 +390,28 @@ fn run_windows_input_stream(
                     }
                 },
                 RawEvent::JoystickAxisEvent(device_id, axis, value) => {
-                    let axes = accumulator.sticks.entry(device_id).or_default();
-
-                    match axis {
-                        Axis::X => axes.left_x = value,
-                        Axis::Y => axes.left_y = value,
-                        Axis::RX => axes.right_x = value,
-                        Axis::RY => axes.right_y = value,
-                        _ => {}
-                    }
+                    accumulator.update_rawinput_axis(device_id, axis, value);
                 }
                 _ => {}
+            }
+        }
+
+        if let Some(gamepads) = &mut gamepads {
+            while let Some(event) = gamepads.next_event() {
+                let device_id = usize::from(event.id);
+
+                match event.event {
+                    GamepadEventType::AxisChanged(axis, value, _) => {
+                        accumulator.update_xinput_axis(device_id, axis, f64::from(value));
+                    }
+                    GamepadEventType::Connected => {
+                        accumulator.ensure_xinput_stick(device_id);
+                    }
+                    GamepadEventType::Disconnected => {
+                        accumulator.clear_xinput_stick(device_id);
+                    }
+                    _ => {}
+                }
             }
         }
 

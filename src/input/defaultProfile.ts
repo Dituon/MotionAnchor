@@ -12,7 +12,7 @@ export const defaultInputProfile: InputProfilePayload = {
           deviceId: null,
           stick: "right",
           deadzone: 0.15,
-          scale: 24,
+          scale: 32,
           invertX: false,
           invertY: false,
         },
