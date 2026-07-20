@@ -37,6 +37,11 @@ export type LengthValue = {
   unit: LengthUnit;
 };
 
+export type PositionValue = {
+  x: LengthValue;
+  y: LengthValue;
+};
+
 export type LengthUnitConfig = {
   defaultValue: number;
   min: number;
@@ -57,7 +62,8 @@ export type PluginSettingVisibilityCondition = {
 export type PluginSettingSchema = {
   key: string;
   label: string;
-  kind: "boolean" | "enum" | "length" | "number" | "paint" | "px" | "vector2" | string;
+  kind: "boolean" | "enum" | "length" | "number" | "paint" | "position" | "px" | "string" | "vector2" | string;
+  group?: string;
   min?: number;
   max?: number;
   step?: number;
@@ -67,6 +73,9 @@ export type PluginSettingSchema = {
   length?: {
     px?: LengthUnitConfig;
     percent?: LengthUnitConfig;
+  };
+  position?: {
+    defaultValue: PositionValue;
   };
 };
 

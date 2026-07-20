@@ -1,5 +1,6 @@
 import directionalPullRing from "./builtin/directional-pull-ring";
 import classicCrosshair from "./builtin/classic-crosshair";
+import digitalClock from "./builtin/digital-clock";
 import fullscreenBorder from "./builtin/fullscreen-border";
 import fullscreenGrid from "./builtin/fullscreen-grid";
 import fullscreenReferenceLines from "./builtin/fullscreen-reference-lines";
@@ -15,6 +16,7 @@ import type {
 export const registeredPlugins = [
   directionalPullRing,
   classicCrosshair,
+  digitalClock,
   staticRing,
   fullscreenReferenceLines,
   fullscreenGrid,

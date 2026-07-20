@@ -1,5 +1,6 @@
 import type {
   LengthValue,
+  PositionValue,
   PluginEnumOption,
   PluginDirectoryPayload,
   PluginManifest,
@@ -19,11 +20,13 @@ export function definePlugin(plugin: PluginRegistration) {
 
 export function paintSetting({
   defaultValue = null,
+  group,
   label,
   solidOnly = false,
   visibleWhen,
 }: {
   defaultValue?: Paint | string | null;
+  group?: string;
   label?: string;
   solidOnly?: boolean;
   visibleWhen?: PluginSettingVisibilityCondition;
@@ -38,6 +41,7 @@ export function paintSetting({
 
   return {
     defaultValue: normalizedDefaultValue,
+    group,
     kind: "paint",
     label: label ?? "Paint",
     solidOnly,
@@ -47,6 +51,7 @@ export function paintSetting({
 
 export function numberSetting({
   defaultValue,
+  group,
   label,
   max,
   min,
@@ -54,6 +59,7 @@ export function numberSetting({
   visibleWhen,
 }: {
   defaultValue: number;
+  group?: string;
   label?: string;
   max: number;
   min: number;
@@ -62,6 +68,7 @@ export function numberSetting({
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "number",
     label: label ?? "Value",
     max,
@@ -73,6 +80,7 @@ export function numberSetting({
 
 export function pxSetting({
   defaultValue,
+  group,
   label,
   max,
   min,
@@ -80,6 +88,7 @@ export function pxSetting({
   visibleWhen,
 }: {
   defaultValue: number;
+  group?: string;
   label?: string;
   max: number;
   min: number;
@@ -88,6 +97,7 @@ export function pxSetting({
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "px",
     label: label ?? "Size",
     max,
@@ -99,17 +109,20 @@ export function pxSetting({
 
 export function enumSetting({
   defaultValue,
+  group,
   label,
   options,
   visibleWhen,
 }: {
   defaultValue: string;
+  group?: string;
   label?: string;
   options: PluginEnumOption[];
   visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "enum",
     label: label ?? "Option",
     options,
@@ -119,15 +132,18 @@ export function enumSetting({
 
 export function booleanSetting({
   defaultValue,
+  group,
   label,
   visibleWhen,
 }: {
   defaultValue: boolean;
+  group?: string;
   label?: string;
   visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "boolean",
     label: label ?? "Enabled",
     visibleWhen,
@@ -136,29 +152,54 @@ export function booleanSetting({
 
 export function vector2Setting({
   defaultValue,
+  group,
   label,
   visibleWhen,
 }: {
   defaultValue: string;
+  group?: string;
   label?: string;
   visibleWhen?: PluginSettingVisibilityCondition;
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "vector2",
     label: label ?? "Input",
     visibleWhen,
   };
 }
 
+export function stringSetting({
+  defaultValue,
+  group,
+  label,
+  visibleWhen,
+}: {
+  defaultValue: string;
+  group?: string;
+  label?: string;
+  visibleWhen?: PluginSettingVisibilityCondition;
+}): PluginSettingDefinition {
+  return {
+    defaultValue,
+    group,
+    kind: "string",
+    label: label ?? "Text",
+    visibleWhen,
+  };
+}
+
 export function lengthSetting({
   defaultValue,
+  group,
   label,
   percent,
   px,
   visibleWhen,
 }: {
   defaultValue: LengthValue;
+  group?: string;
   label?: string;
   percent: { defaultValue: number; max: number; min: number; step: number };
   px: { max: number; min: number; step: number };
@@ -166,6 +207,7 @@ export function lengthSetting({
 }): PluginSettingDefinition {
   return {
     defaultValue,
+    group,
     kind: "length",
     label: label ?? "Length",
     visibleWhen,
@@ -176,6 +218,28 @@ export function lengthSetting({
         ...px,
       },
     },
+  };
+}
+
+export function positionSetting(
+  defaultValue: PositionValue,
+  {
+    group,
+    label,
+    visibleWhen,
+  }: {
+    group?: string;
+    label?: string;
+    visibleWhen?: PluginSettingVisibilityCondition;
+  } = {},
+): PluginSettingDefinition {
+  return {
+    defaultValue,
+    group,
+    kind: "position",
+    label: label ?? "Position",
+    position: { defaultValue },
+    visibleWhen,
   };
 }
 
@@ -199,6 +263,7 @@ export function toPluginManifest(plugin: PluginRegistration, override?: PluginOv
     },
     schema: Object.entries(plugin.settings).map(([key, setting]) => ({
       key,
+      group: setting.group,
       label: setting.label,
       kind: setting.kind,
       min: setting.min,
@@ -208,6 +273,7 @@ export function toPluginManifest(plugin: PluginRegistration, override?: PluginOv
       options: setting.options,
       visibleWhen: setting.visibleWhen,
       length: setting.length,
+      position: setting.position,
     })),
   };
 }

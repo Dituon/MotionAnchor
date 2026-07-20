@@ -10,7 +10,7 @@ import {
 import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { LengthUnit, LengthUnitConfig, LengthValue, PluginManifest } from "../plugins/types";
+import type { LengthUnit, LengthUnitConfig, LengthValue, PluginManifest, PositionValue } from "../plugins/types";
 import type { InputProfilePayload } from "../tauri/types";
 import { PaintInput, normalizePaint, type Paint } from "./paint";
 
@@ -88,6 +88,19 @@ export function PluginSettingEditor({
     );
   }
 
+  if (setting.kind === "string") {
+    return (
+      <TextField>
+        <InputGroup fullWidth variant="secondary">
+          <InputGroup.Input
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        </InputGroup>
+      </TextField>
+    );
+  }
+
   if (setting.kind === "enum") {
     const options = setting.options ?? [];
     const stringValue = typeof value === "string" ? value : "";
@@ -148,6 +161,15 @@ export function PluginSettingEditor({
       <LengthSettingEditor
         setting={setting}
         value={lengthValue}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (setting.kind === "position") {
+    return (
+      <PositionSettingEditor
+        value={normalizePositionValue(value, setting)}
         onChange={onChange}
       />
     );
@@ -299,6 +321,81 @@ function LengthSettingEditor({
   );
 }
 
+function PositionSettingEditor({
+  value,
+  onChange,
+}: {
+  value: PositionValue;
+  onChange: (value: unknown) => void;
+}) {
+  const updateAxis = (axis: keyof PositionValue, nextValue: Partial<LengthValue>) => {
+    const current = value[axis];
+
+    onChange({
+      ...value,
+      [axis]: { value: current.value, unit: current.unit, ...nextValue },
+    });
+  };
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <PositionAxisEditor
+        axis="X"
+        value={value.x}
+        onChange={(nextValue) => updateAxis("x", { value: Number(nextValue) })}
+        onToggleUnit={() => updateAxis("x", { unit: value.x.unit === "px" ? "%" : "px" })}
+      />
+      <PositionAxisEditor
+        axis="Y"
+        value={value.y}
+        onChange={(nextValue) => updateAxis("y", { value: Number(nextValue) })}
+        onToggleUnit={() => updateAxis("y", { unit: value.y.unit === "px" ? "%" : "px" })}
+      />
+    </div>
+  );
+}
+
+function PositionAxisEditor({
+  axis,
+  value,
+  onChange,
+  onToggleUnit,
+}: {
+  axis: string;
+  value: LengthValue;
+  onChange: (value: unknown) => void;
+  onToggleUnit: () => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <span className="text-sm text-muted">{axis}</span>
+      <Slider
+        className="min-w-0"
+        minValue={0}
+        maxValue={getPositionSliderMax(axis, value.unit)}
+        step={value.unit === "%" ? 0.1 : 1}
+        value={clampNumber(value.value, 0, getPositionSliderMax(axis, value.unit))}
+        onChange={(nextValue) => {
+          if (typeof nextValue === "number") {
+            onChange(nextValue);
+          }
+        }}
+      >
+        <Slider.Track>
+          <Slider.Fill />
+          <Slider.Thumb />
+        </Slider.Track>
+      </Slider>
+      <NumberInputGroup
+        unit={value.unit}
+        value={value.value}
+        onChange={onChange}
+        onToggleUnit={onToggleUnit}
+      />
+    </div>
+  );
+}
+
 function NumberInputGroup({
   max,
   min,
@@ -362,6 +459,49 @@ function normalizeLengthValue(value: unknown, setting: PluginManifest["schema"][
   const pxConfig = getLengthUnitConfig(setting, "px");
 
   return { value: pxConfig.defaultValue, unit: "px" };
+}
+
+function normalizePositionValue(value: unknown, setting: PluginManifest["schema"][number]): PositionValue {
+  const fallback = setting.position?.defaultValue ?? {
+    x: { value: 0, unit: "px" },
+    y: { value: 0, unit: "px" },
+  };
+
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  return {
+    x: normalizePositionAxis(value.x, fallback.x),
+    y: normalizePositionAxis(value.y, fallback.y),
+  };
+}
+
+function normalizePositionAxis(value: unknown, fallback: LengthValue): LengthValue {
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  const numericValue = value.value;
+  const unit = value.unit;
+
+  return typeof numericValue === "number" && Number.isFinite(numericValue) && isLengthUnit(unit)
+    ? { value: numericValue, unit }
+    : fallback;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPositionSliderMax(axis: string, unit: LengthUnit) {
+  if (unit === "%") {
+    return 100;
+  }
+
+  const viewport = axis === "X" ? window.innerWidth : window.innerHeight;
+
+  return Math.max(1, viewport);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
