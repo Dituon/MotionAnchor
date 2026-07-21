@@ -26,7 +26,7 @@ export function AppInfoPanel({
   runtime: SettingsRuntime;
 }) {
   const { i18n, t } = useTranslation();
-  const [appVersion, setAppVersion] = useState("0.1.0");
+  const [appVersion, setAppVersion] = useState("0.2.0");
   const isChinese =
     i18n.resolvedLanguage?.toLowerCase().startsWith("zh") || i18n.language.toLowerCase().startsWith("zh");
 
@@ -42,7 +42,7 @@ export function AppInfoPanel({
       })
       .catch(() => {
         if (!cancelled) {
-          setAppVersion("0.1.0");
+          setAppVersion("0.2.0");
         }
       });
 

@@ -141,7 +141,7 @@ export function createDemoSettingsRuntime(): DemoSettingsRuntime {
   };
 
   return {
-    getAppVersion: async () => "0.1.1 demo",
+    getAppVersion: async () => "0.2.0 demo",
     getInputEnabled: async () => inputEnabled,
     getInputProfile: async () => cloneJson(inputProfile),
     getOverlayAppearance: async () => overlayAppearance,
